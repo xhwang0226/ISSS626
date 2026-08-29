@@ -1,0 +1,31 @@
+---
+title: "Hands-on Exercise 01: Geospatial Data Wrangling"
+author: "Wang Xiaohan"
+date: "`r Sys.Date()`"
+date-modified: "last-modified"
+format: html
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+editor: visual
+---
+
+1 Getting Started What we can learn from the code chunk above:
+
+p_load function pf pacman package is used to install and load sf and tidyverse packages into R environment.
+
+```{r}
+pacman::p_load(sf, tidyverse)
+```
+
+2 Importing Geospatial Data
+
+2.1Importing polygon feature data in shapefile format
+
+The message above reveals that the geospatial objects are multipolygon features. There are a total of 323 multipolygon features and 15 fields in mpsz simple feature data frame. mpsz is in svy21 projected coordinates systems. The bounding box provides the x extend and y extend of the data.
+
+```{r}
+mpsz = st_read("data/MasterPlan2014SubzoneBoundaryWeb.geojson")
+```
