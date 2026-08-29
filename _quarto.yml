@@ -1,24 +1,5 @@
 project:
   type: website
-
-website:
-  title: "ISSS626-GAA"
-  navbar:
-    left:
-      - href: index.qmd
-        text: Home
-      - about.qmd
-
-format:
-  html:
-    theme:
-      - cosmo
-      - brand
-    css: styles.css
-    toc: true
-
-project:
-  type: website
   output-dir: _site
 
 website:
@@ -31,7 +12,7 @@ website:
         text: Home
       - text: "Hands-on Exercises"
         menu:
-          - href: Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.qmd
+          - href: Hands-on/Hands-on_Ex01/Hands-on-Ex01.qmd
             text: "Hands-on Ex01"
       - text: "In-class Exercises"
         menu:
@@ -50,8 +31,3 @@ format:
     theme: Quartz
     css: styles.css
     toc: true
-    toc-depth: 3
-    code-copy: true
-
-editor: visual
-
