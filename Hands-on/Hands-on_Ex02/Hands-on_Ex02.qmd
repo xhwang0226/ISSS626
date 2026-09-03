@@ -1,5 +1,5 @@
 ---
-title: "Hands-on Exercise 2: Thematic Mapping and GeoVisualisation with R"
+title: "Hands-on Exercise 02: Thematic Mapping and GeoVisualisation with R"
 author: "Xiaohan"
 date: "today"
 execute:
