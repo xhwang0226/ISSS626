@@ -50,6 +50,24 @@ The G function measures the distribution of the distances from an arbitrary even
 ##6.1 Choa Chu Kang planning area
 
 ###6.1.1 Computing G-function estimation
+```{r}
+childcare_sf <- st_read(dsn = "data/ChildCareServices.geojson") |>
+  st_transform(crs = 3414)
+
+mpsz_sf <- st_read(dsn = "data/MasterPlan2019SubzoneBoundaryNoSeaGEOJSON .geojson") |>
+  st_transform(crs = 3414)
+
+childcare_ppp <- as.ppp(childcare_sf)
+
+ck <- mpsz_sf |> filter(PLN_AREA_N == "CHOA CHU KANG")
+tm <- mpsz_sf |> filter(PLN_AREA_N == "TAMPINES")
+
+ck_owin <- as.owin(ck)
+tm_owin <- as.owin(tm)
+
+childcare_ck_ppp <- childcare_ppp[ck_owin]
+childcare_tm_ppp <- childcare_ppp[tm_owin]
+```
 
 ```{r}
 set.seed(1234)
