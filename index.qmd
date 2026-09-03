@@ -2,10 +2,16 @@
 title: "ISSS626-GAA"
 ---
 
+welcome to ISSS608 Visual Analytics and Applications.I am ***xhwang0226***.
+
+This website showcases my hands-on exercises and learning journey through the course. Each exercise explores different visualization techniques using R, Quarto, and various visualization packages.
+
+## Hands-on Exercises
+
+-   [Hands-on Exercise 1: A Layered Grammar of Graphics with ggplot2](Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html)
+-   [Hands-on Exercise 2: Thematic Mapping and GeoVisualisation with R](Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html)
 This is a Quarto website.
 
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 
-```{r}
-1 + 1
-```
+
