@@ -1,0 +1,115 @@
+---
+title: "In-class_Ex04"
+author: "Xiaohan Wang"
+date: "september 18, 2026"
+date-modified: today
+execute: 
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+  message: false
+editor: visual
+---
+```{r}
+pacman::p_load(sf, ggstatsplot, tmap, spatstat, sparr, knitr, 
+               tmap, stpp, tidyverse, GWmodel)
+```
+
+# preparing the data
+
+```{r}
+hunan_sf <- st_read(dsn = "data/geospatial", 
+                 layer = "Hunan")
+```
+```{r}
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
+```
+
+```{r}
+hunan_sf <- left_join(hunan_sf, hunan2012) %>%
+  select(1:3, 7, 15, 16, 31, 32)
+```
+# Mapping GDPPC
+```{r}
+basemap <- tm_shape(hunan_sf) +
+  tm_polygons() +
+  tm_text("NAME_3", size=0.5)
+
+gdppc <- qtm(hunan_sf, "GDPPC") +
+  tm_layout(
+    legend.position = c("left", "bottom"))
+tmap_arrange(basemap, gdppc, asp=1, ncol=2)
+```
+
+
+```{r}
+hunan_sp <- hunan_sf %>%
+  as_Spatial()
+```
+
+```{r}
+bw_CV <- bw.gwr(GDPPC ~ 1,
+                data = hunan_sp,
+                approach = "CV",
+                adaptive = TRUE,
+                kernel = "bisquare",
+                longlat = T)
+```
+
+```{r}
+bw_CV <- bw.gwr(GDPPC ~ 1,
+                data = hunan_sp,
+                approach = "CV",
+                adaptive = FALSE,
+                kernel = "bisquare",
+                longlat = T)
+```
+```{r}
+bw_AIC <- bw.gwr(GDPPC ~ 1,
+                 data = hunan_sp,
+                 approach = "AICc",
+                 adaptive = TRUE,
+                 kernel = "bisquare",
+                 longlat = T)
+```
+
+
+```{r}
+gwstat <- gwss(data = hunan_sp,
+               vars = "GDPPC",
+               bw = bw_AIC,
+               kernel = "bisquare",
+               quantile = TRUE,
+               adaptive = TRUE,
+               longlat = T)
+```
+
+# prepaering the output data
+Code chunk below is used to extract SDF data table from gwss object output from gwss() fro subsequent geovilisation. It will be converted into data.frame by using as.data.frame().
+```{r}
+gwstat_df <- as.data.frame(gwstat$SDF)
+```
+
+Next,cbind() is used to append the newly derived data.frame onto hunan_sf sf data.frame.
+```{r}
+hunan_gstat <- cbind(hunan_sf, gwstat_df)
+```
+
+# visual geographically weighted summary statistic
+```{r}
+#| fig-width: 18
+#| fig-height: 8
+tm_shape(hunan_gstat) +
+  tm_polygons(fill = "GDPPC_LM",
+              fill.scale = tm_scale_intervals(
+                style = "quantile",
+                n = 5,
+                values = "brewer.blues"),
+              fill.legend = tm_legend(
+                title = "local Mean")) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_title("Distribution of geographically wieghted mean") +
+  tm_layout(legend.position = c("left", "bottom"))
+```
+

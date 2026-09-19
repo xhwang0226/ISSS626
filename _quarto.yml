@@ -26,8 +26,8 @@ website:
             text: "Hands-on Ex06"
       - text: "In-class Exercises"
         menu:
-          - href: In-class_Ex/In-class_Ex01/In-class_Ex01.qmd
-            text: "In-class Ex01"
+          - href: In-class_Ex/In-class_Ex04/In-class_Ex04.qmd
+            text: "In-class Ex04"
       - text: "Take-home Exercises"
         menu:
           - href: Take-home_Ex/Take-home_Ex01/Take-home_Ex01.qmd
