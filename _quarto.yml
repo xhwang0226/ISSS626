@@ -24,6 +24,10 @@ website:
             text: "Hands-on Ex05"
           - href: Hands-on/Hands-on_Ex06/Hands-on_Ex06.qmd
             text: "Hands-on Ex06"
+          - href: Hands-on/Hands-on_Ex07/Hands-on_Ex07.qmd
+            text: "Hands-on Ex07"
+          - href: Hands-on/Hands-on_Ex08/Hands-on_Ex08.qmd
+            text: "Hands-on Ex08"
       - text: "In-class Exercises"
         menu:
           - href: In-class_Ex/In-class_Ex04/In-class_Ex04.qmd
