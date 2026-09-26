@@ -1,0 +1,353 @@
+---
+title: "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?"
+subtitle: "Executive Summary · Take-home Exercise 1 · ISSS626 Geospatial Analytics"
+author: "Wang Xiaohan"
+date: "2026-09-27"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    smaller: true
+    transition: fade
+    scrollable: true
+    footer: "Road traffic accidents in BMR, 2022 · Executive Summary"
+execute:
+  echo: false
+  eval: true
+  message: false
+  warning: false
+  freeze: true
+---
+
+```{r}
+#| include: false
+# Objects saved by the Technical Report (Take-home_Ex01.qmd) are reused here,
+# so that the slides render quickly. Render the Technical Report first.
+pacman::p_load(sf, spNetwork, tmap, tidyverse, spatstat, sparr)
+
+bmr_names <- c("Bangkok", "Nonthaburi Province", "Nakhon Pathom Province",
+               "Pathum Thani Province", "Samut Prakan Province",
+               "Samut Sakhon Province")
+
+bmr_sf <- st_read(dsn = "data/geospatial",
+                  layer = "geoBoundaries-THA-ADM1",
+                  quiet = TRUE) %>%
+  filter(shapeName %in% bmr_names) %>%
+  st_transform(crs = 32647)
+
+bmr_union <- st_union(bmr_sf)
+bmr_owin <- as.owin(bmr_union)
+
+network <- read_rds("data/rds/network.rds")
+acc_bmr_sf <- read_rds("data/rds/acc_bmr_sf.rds")
+lixels <- read_rds("data/rds/lixels.rds")
+kfun_acc <- read_rds("data/rds/kfun_acc.rds")
+L_acc.csr <- read_rds("data/rds/L_acc_csr.rds")
+```
+
+## Contents
+
+1.  Why this matters and research questions
+2.  Study area and data
+3.  Data quality and the observation process
+4.  Analytical approach
+5.  When do accidents happen?
+6.  Where do accidents concentrate on the network?
+7.  Are hotspots stable over the year?
+8.  Are accidents clustered? It depends on the null model
+9.  Limitations
+10. Public-safety implications
+
+## 1. Why this matters
+
+:::: {.columns}
+::: {.column width="50%"}
+**The problem**
+
+-   Thailand had about **18,218 road deaths in 2021**, a rate of **25.4 per 100,000**, among the highest in Asia (WHO, 2023)
+-   The Bangkok Metropolitan Region (BMR) is Thailand's largest urban area
+-   A concentration of accidents **is not the same as higher risk**: it may reflect traffic volume, road density or how accidents are recorded
+:::
+
+::: {.column width="50%"}
+**Research questions**
+
+1.  **Where and when** are recorded road accidents in BMR concentrated in 2022?
+2.  Along the road network, are accidents **clustered, regular or random**, compared with random placement on the network?
+3.  Do conclusions change between **planar and network** views?
+:::
+::::
+
+## 2. Study area and data
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+tm_shape(bmr_sf) +
+  tm_polygons(fill = "grey95") +
+  tm_text("shapeName", size = 0.6) +
+tm_shape(acc_bmr_sf) +
+  tm_dots(size = 0.05, fill = "red") +
+tm_title("3,599 recorded accidents, BMR 2022")
+```
+:::
+
+::: {.column width="45%"}
+**Study area:** Bangkok + 5 vicinity provinces (Nonthaburi, Pathum Thani, Samut Prakan, Samut Sakhon, Nakhon Pathom), from geoBoundaries ADM1
+
+**Data**
+
+| Dataset | Source |
+|----|----|
+| Road accidents 2019-2022 (2022 used) | Kaggle |
+| Province boundaries | geoBoundaries |
+| Major roads (motorway to tertiary) | OpenStreetMap via Geofabrik |
+
+**Point event:** one recorded accident in 2022, inside BMR, within 100 m of a major road
+:::
+::::
+
+## 3. Data quality and the observation process
+
+:::: {.columns}
+::: {.column width="50%"}
+**From raw records to analysis-ready events**
+
+| Step | Records |
+|----|---:|
+| Raw records, 2019-2022 | 81,735 |
+| Occurred in 2022 | 21,032 |
+| Valid coordinates (189 missing removed) | 20,843 |
+| Inside BMR | 3,599 |
+| Within 100 m of a major road | 3,594 |
+
+No swapped coordinates or duplicate records were found. Some accidents share exact locations; they were kept.
+:::
+
+::: {.column width="50%"}
+**Who recorded the accidents?**
+
+| Agency | Share |
+|----|---:|
+| Department of Highways | 80.1% |
+| Expressway Authority of Thailand | 13.1% |
+| Department of Rural Roads | 6.8% |
+| Bangkok Metropolitan Administration | 0% |
+
+::: {.callout-important}
+All records come from national road agencies. Accidents on city-managed streets are **likely missing**, so results describe recorded accidents on highways, expressways and rural roads.
+:::
+:::
+::::
+
+## 4. Analytical approach
+
+Accidents can only occur on roads, so the **road network is the study space**.
+
+| Question | Main method | Reference / null model | Comparison |
+|----|----|----|----|
+| **When?** | Monthly and daily counts | – | Holiday campaign periods |
+| **Where?** (first-order) | **Network KDE** (quartic kernel, 1 km along roads) | – | Planar KDE; NKDE at 0.5 and 2 km |
+| **Stable over time?** | Spatio-temporal KDE by day of year | – | STKDE by month |
+| **Clustered?** (second-order) | **Network K- and G-functions**, 50 simulations, Bangkok | **CSR on the road network** | Clark-Evans, G and L vs planar CSR |
+
+<br>
+
+**Key assumptions:** events are located on the major road network; network CSR treats every road as equally likely, ignoring traffic volume; recorded accidents represent all accidents (they do not, see slide 3).
+
+## 5. When do accidents happen?
+
+:::: {.columns}
+::: {.column width="50%"}
+```{r}
+#| fig-width: 5
+#| fig-height: 3.5
+ggplot(acc_bmr_sf, aes(x = Month_num)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Month (1 = January)", y = "No. of accidents",
+       title = "Monthly accidents, 2022") +
+  theme_minimal()
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| fig-width: 5
+#| fig-height: 3.5
+ggplot(acc_bmr_sf, aes(x = DayofYear)) +
+  geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = c(4, 101, 107, 363),
+             linetype = "dashed", colour = "red") +
+  labs(x = "Day of year", y = "No. of accidents per day",
+       title = "Daily accidents (red: holiday campaigns)") +
+  theme_minimal()
+```
+:::
+::::
+
+-   Monthly counts range from about **210 (February) to 395 (October)**, higher in the second half of 2022
+-   The largest daily peaks coincide with the **New Year and Songkran** campaign periods, up to about 36 accidents a day
+-   Counts are not adjusted for traffic volume, so peaks mean **more recorded accidents**, not necessarily higher risk
+
+## 6. Where do accidents concentrate on the network?
+
+:::: {.columns}
+::: {.column width="62%"}
+```{r}
+#| fig-width: 6.5
+#| fig-height: 5.5
+lixels_pos <- lixels %>%
+  filter(density > 0)
+
+tm_shape(bmr_sf) +
+  tm_polygons(fill = "grey95") +
+tm_shape(network) +
+  tm_lines(col = "grey80") +
+tm_shape(lixels_pos) +
+  tm_lines(col = "density",
+           col.scale = tm_scale_intervals(style = "quantile",
+                                          values = "viridis"),
+           col.legend = tm_legend(title = "NKDE (events per km)"),
+           lwd = 2) +
+tm_title("Network KDE, bandwidth 1 km")
+```
+:::
+
+::: {.column width="38%"}
+**Accidents concentrate on a few specific roads**
+
+-   Corridors across **southern Bangkok into Samut Prakan** (highest density)
+-   A **north–south corridor** into Pathum Thani
+-   A **south-western corridor** towards Samut Sakhon
+
+Most of the major road network, including much of inner Bangkok, has **zero or near-zero** density.
+
+Planar KDE shows the same corridors but spreads them into areas without roads; NKDE pinpoints the **road segments**.
+:::
+::::
+
+## 7. Are hotspots stable over the year?
+
+```{r}
+#| include: false
+acc_yday_ppp <- acc_bmr_sf %>%
+  select(DayofYear) %>%
+  as.ppp()
+acc_yday_owin <- acc_yday_ppp[bmr_owin]
+
+# same h and lambda as Section 6.6 of the Technical Report
+kde_yday <- spattemp.density(acc_yday_owin,
+                             h = 3062,
+                             lambda = 76)
+```
+
+:::: {.columns}
+::: {.column width="62%"}
+```{r}
+#| fig-width: 7
+#| fig-height: 5.5
+tims <- c(46, 105, 196, 288)
+par(mfcol = c(2, 2))
+for (i in tims) {
+  plot(kde_yday, i,
+       override.par = FALSE,
+       fix.range = TRUE,
+       main = paste("KDE at day", i))
+}
+```
+:::
+
+::: {.column width="38%"}
+**Spatio-temporal KDE** (bootstrap bandwidths: 3.1 km, 76 days)
+
+-   **Stable core:** the hotspot in south-eastern Bangkok near Samut Prakan, and the corridor into Pathum Thani, persist all year
+-   **Changing periphery:** the corridor towards **Samut Sakhon** is faint in February and April, but prominent by July and October
+
+The 76-day bandwidth shows **seasonal** change; short holiday peaks are smoothed out (see slide 5).
+:::
+::::
+
+## 8. Are accidents clustered? It depends on the null model
+
+:::: {.columns}
+::: {.column width="50%"}
+**Planar L-function vs planar CSR (BMR)**
+
+```{r}
+#| fig-width: 5
+#| fig-height: 4
+plot(L_acc.csr, . - r ~ r,
+     xlab = "d (km)", ylab = "L(d)-r",
+     main = "")
+```
+
+Strong clustering at all distances, but planar CSR assumes accidents can occur **anywhere**, including fields and rivers.
+:::
+
+::: {.column width="50%"}
+**Network K-function vs CSR on the network (Bangkok)**
+
+```{r}
+#| fig-width: 5
+#| fig-height: 4
+kfun_acc$plotk +
+  labs(x = "Network distance (m)")
+```
+
+<!-- TODO: replace with the result from Section 7.1 of the Technical Report, e.g. "The blue line lies above the envelope from X to Y m, indicating clustering along the network at these distances." -->
+[Network K-function result]
+:::
+::::
+
+**Takeaway:** much of the planar "clustering" reflects the fact that accidents are confined to a few roads. The network test is the fairer comparison.
+
+## 9. Limitations
+
+:::: {.columns}
+::: {.column width="50%"}
+**Data**
+
+-   **Observation process:** only national road agencies' records; city streets are likely missing
+-   **No exposure data:** without traffic volumes, concentration ≠ risk
+-   **Location quality:** some accidents share exact locations, possibly fixed reference points
+-   **Single year** (2022) and a **2026 road network** for 2022 accidents
+:::
+
+::: {.column width="50%"}
+**Methods**
+
+-   Results depend on **bandwidth** (tested at several values for planar KDE and NKDE)
+-   **Network CSR** assumes equal exposure on every road
+-   Network K-function covers **Bangkok only**, with 50 simulations, for computational reasons
+-   The day-of-year STKDE smooths out **short holiday peaks**
+:::
+::::
+
+## 10. Public-safety implications
+
+:::: {.columns}
+::: {.column width="50%"}
+**Supported directly by the analysis**
+
+-   **Target road segments, not whole provinces:** focus audits, enforcement and engineering reviews on the high-density corridors
+-   **Investigate repeated locations** at site level (junction design, signage, lighting)
+-   **Time campaigns** for the New Year and Songkran periods and the second half of the year
+-   **Monitor** the emerging Samut Sakhon corridor
+-   **Emergency response:** check rescue-unit coverage along the high-density corridors
+:::
+
+::: {.column width="50%"}
+**Requires additional information**
+
+-   **Traffic volumes**, to turn counts into risk per vehicle-kilometre
+-   **Cause, vehicle and road-design data**, before designing specific interventions
+-   **City-street records** from the Bangkok Metropolitan Administration
+-   **Multi-year data**, to confirm that the patterns persist and to evaluate campaigns
+:::
+::::
+
+::: {.callout-note}
+These findings describe where **recorded** accidents concentrate; they do not show why they occur.
+:::

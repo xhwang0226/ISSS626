@@ -16,9 +16,15 @@ This website showcases my hands-on exercises and learning journey through the co
 -   [Hands-on Exercise 6: Spatial Weights and Applications Analysis](Hands-on/Hands-on_Ex06/Hands-on_Ex06.html)
 -   [Hands-on Exercise 7: Global Measures of Spatial Autocorrelation](Hands-on/Hands-on_Ex07/Hands-on_Ex07.html)
 -   [Hands-on Exercise 8: Local Measures of Spatial Autocorrelation](Hands-on/Hands-on_Ex08/Hands-on_Ex08.html)
+
 ## In-class Exercises
+
 -   [In-class Exercise 4](In-class/In-class_Ex04/In-class_Ex04.html)
 This is a Quarto website.
+
+## Take-home Exercises
+
+-   [Take-home Exercise 1](Take-home/Take-home_Ex01/Take-home_Ex01.html)
 
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 

@@ -411,5 +411,82 @@
     "title": "In-class_Ex05",
     "section": "",
     "text": "pacman::p_load(sf, sfdep, tmap, tidyverse)\n\n\nhunan &lt;- st_read(dsn = \"data/geospatial\",\n                 layer = \"Hunan\")\n\nReading layer `Hunan' from data source \n  `/Users/wangxiaohan/ISSS626-GAA/In-class_Ex/In-class_Ex05/data/geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n\n\n\nhunan2012 &lt;- read_csv(\"data/aspatial/Hunan_2012.csv\")\n\nRows: 88 Columns: 29\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr  (2): County, City\ndbl (27): avg_wage, deposite, FAI, Gov_Rev, Gov_Exp, GDP, GDPPC, GIO, Loan, ...\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.\n\n\n\nhunan_GDPPC &lt;- left_join(hunan, hunan2012) %&gt;%\n  select(1:4, 7, 15, 33)\n\nJoining with `by = join_by(County)`\n\n\n\nwm_q &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = st_contiguity(geometry),\n         wt = st_weights(nb,\n                         style = \"W\"),\n         .before = 1)\n\n\nmoranI &lt;- global_moran(wm_q$GDPPC,\n                       wm_q$nb,\n                       wm_q$wt)\nglimpse(moranI)\n\nList of 2\n $ I: num 0.301\n $ K: num 7.64\n\n\n\nglobal_moran_test(wm_q$GDPPC,\n                  wm_q$nb,\n                  wm_q$wt)\n\n\n    Moran I test under randomisation\n\ndata:  x  \nweights: listw    \n\nMoran I statistic standard deviate = 4.7351, p-value = 1.095e-06\nalternative hypothesis: greater\nsample estimates:\nMoran I statistic       Expectation          Variance \n      0.300749970      -0.011494253       0.004348351 \n\n\n\nset.seed(1234)\n\nglobal_moran_perm(wm_q$GDPPC,\n                  wm_q$nb,\n                  wm_q$wt,\n                  nsim = 99)\n\n\n    Monte-Carlo simulation of Moran I\n\ndata:  x \nweights: listw  \nnumber of simulations + 1: 100 \n\nstatistic = 0.30075, observed rank = 100, p-value &lt; 2.2e-16\nalternative hypothesis: two.sided\n\n\n\nlisa &lt;- wm_q %&gt;%\n  mutate(local_moran = local_moran(\n    GDPPC, nb, wt, nsim = 99),\n         .before = 1) %&gt;%\n  unnest(local_moran)\n\n\nlisa_sig &lt;- lisa %&gt;%\n  filter(p_ii_sim &lt; 0.05)\n\ntmap_mode(\"plot\")\n\nℹ tmap modes \"plot\" - \"view\"\nℹ toggle with `tmap::ttm()`\n\ntm_shape(lisa) +\n  tm_polygons() +\n  tm_borders(fill_alpha = 0.5) +\ntm_shape(lisa_sig) +\n  tm_polygons(fill = \"mean\",\n              fill.legend = tm_legend(\n                text.size = 1.15,\n                width = 6)) +\n  tm_borders(fill_alpha = 0.4) +\n  tm_layout(legend.title.size = 1.25)\n\n\n\n\n\n\n\n\n\ntmap_mode(\"plot\")\n\nℹ tmap modes \"plot\" - \"view\"\n\ntm_shape(lisa) +\n  tm_polygons(fill = \"p_ii_sim\") +\n  tm_borders(fill_alpha = 0.5) +\n  tm_title(\"p-value of local Moran's I\") +\n  tm_layout(legend.title.size = 1.5)\n\n\n\n\n\n\n\n\n\nwm_idw &lt;- hunan_GDPPC %&gt;%\n  mutate(nb = include_self(st_contiguity(geometry)),\n         wts = st_inverse_distance(nb, geometry,\n                                   scale = 1,\n                                   alpha = 1),\n         .before = 1)\n\n! Polygon provided. Using point on surface.\n\n\nWarning: There was 1 warning in `stopifnot()`.\nℹ In argument: `wts = st_inverse_distance(nb, geometry, scale = 1, alpha = 1)`.\nCaused by warning in `st_point_on_surface.sfc()`:\n! st_point_on_surface may not give correct results for longitude/latitude data\n\nHCSA &lt;- wm_idw %&gt;%\n  mutate(local_Gi = local_gstar_perm(\n    GDPPC, nb, wts, nsim = 99),\n         .before = 1) %&gt;%\n  unnest(local_Gi)\n\n\ntmap_mode(\"plot\")\n\nℹ tmap modes \"plot\" - \"view\"\n\ntm_shape(HCSA) +\n  tm_polygons(\n    fill = \"p_sim\",\n    fill.scale = tm_scale_intervals(\n      breaks = c(0, 0.001, 0.01, 0.05, 1.0),\n      labels = c(\"p &lt; 0.001\", \"p &lt; 0.01\", \"p &lt; 0.05\", \"Not Significant\"),\n      values = c(\"#de2d26\", \"#fc9272\", \"#fee0d2\", \"#e0e0e0\")),\n    fill.legend = tm_legend(\n      title = \"p-values\")\n  ) +\n  tm_title(\"p-values of G*i for GDP per capita\") +\n  tm_borders(fill_alpha = 0.5)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#contents",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#contents",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "Contents",
+    "text": "Contents\n\nWhy this matters and research questions\nStudy area and data\nData quality and the observation process\nAnalytical approach\nWhen do accidents happen?\nWhere do accidents concentrate on the network?\nAre hotspots stable over the year?\nAre accidents clustered? It depends on the null model\nLimitations\nPublic-safety implications"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#why-this-matters",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#why-this-matters",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "1. Why this matters",
+    "text": "1. Why this matters\n\n\nThe problem\n\nThailand had about 18,218 road deaths in 2021, a rate of 25.4 per 100,000, among the highest in Asia (WHO, 2023)\nThe Bangkok Metropolitan Region (BMR) is Thailand’s largest urban area\nA concentration of accidents is not the same as higher risk: it may reflect traffic volume, road density or how accidents are recorded\n\n\nResearch questions\n\nWhere and when are recorded road accidents in BMR concentrated in 2022?\nAlong the road network, are accidents clustered, regular or random, compared with random placement on the network?\nDo conclusions change between planar and network views?"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#study-area-and-data",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#study-area-and-data",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "2. Study area and data",
+    "text": "2. Study area and data\n\n\n\n\n\n\n\n\n\n\n\n\nStudy area: Bangkok + 5 vicinity provinces (Nonthaburi, Pathum Thani, Samut Prakan, Samut Sakhon, Nakhon Pathom), from geoBoundaries ADM1\nData\n\n\n\nDataset\nSource\n\n\n\n\nRoad accidents 2019-2022 (2022 used)\nKaggle\n\n\nProvince boundaries\ngeoBoundaries\n\n\nMajor roads (motorway to tertiary)\nOpenStreetMap via Geofabrik\n\n\n\nPoint event: one recorded accident in 2022, inside BMR, within 100 m of a major road"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#data-quality-and-the-observation-process",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#data-quality-and-the-observation-process",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "3. Data quality and the observation process",
+    "text": "3. Data quality and the observation process\n\n\nFrom raw records to analysis-ready events\n\n\n\nStep\nRecords\n\n\n\n\nRaw records, 2019-2022\n81,735\n\n\nOccurred in 2022\n21,032\n\n\nValid coordinates (189 missing removed)\n20,843\n\n\nInside BMR\n3,599\n\n\nWithin 100 m of a major road\n3,594\n\n\n\nNo swapped coordinates or duplicate records were found. Some accidents share exact locations; they were kept.\n\nWho recorded the accidents?\n\n\n\nAgency\nShare\n\n\n\n\nDepartment of Highways\n80.1%\n\n\nExpressway Authority of Thailand\n13.1%\n\n\nDepartment of Rural Roads\n6.8%\n\n\nBangkok Metropolitan Administration\n0%\n\n\n\n\n\n\n\n\n\nImportant\n\n\nAll records come from national road agencies. Accidents on city-managed streets are likely missing, so results describe recorded accidents on highways, expressways and rural roads."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#analytical-approach",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#analytical-approach",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "4. Analytical approach",
+    "text": "4. Analytical approach\nAccidents can only occur on roads, so the road network is the study space.\n\n\n\n\n\n\n\n\n\nQuestion\nMain method\nReference / null model\nComparison\n\n\n\n\nWhen?\nMonthly and daily counts\n–\nHoliday campaign periods\n\n\nWhere? (first-order)\nNetwork KDE (quartic kernel, 1 km along roads)\n–\nPlanar KDE; NKDE at 0.5 and 2 km\n\n\nStable over time?\nSpatio-temporal KDE by day of year\n–\nSTKDE by month\n\n\nClustered? (second-order)\nNetwork K- and G-functions, 50 simulations, Bangkok\nCSR on the road network\nClark-Evans, G and L vs planar CSR\n\n\n\n\nKey assumptions: events are located on the major road network; network CSR treats every road as equally likely, ignoring traffic volume; recorded accidents represent all accidents (they do not, see slide 3)."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#when-do-accidents-happen",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#when-do-accidents-happen",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "5. When do accidents happen?",
+    "text": "5. When do accidents happen?\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nMonthly counts range from about 210 (February) to 395 (October), higher in the second half of 2022\nThe largest daily peaks coincide with the New Year and Songkran campaign periods, up to about 36 accidents a day\nCounts are not adjusted for traffic volume, so peaks mean more recorded accidents, not necessarily higher risk"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#where-do-accidents-concentrate-on-the-network",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#where-do-accidents-concentrate-on-the-network",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "6. Where do accidents concentrate on the network?",
+    "text": "6. Where do accidents concentrate on the network?\n\n\n\n\n\n\n\n\n\n\n\n\nAccidents concentrate on a few specific roads\n\nCorridors across southern Bangkok into Samut Prakan (highest density)\nA north–south corridor into Pathum Thani\nA south-western corridor towards Samut Sakhon\n\nMost of the major road network, including much of inner Bangkok, has zero or near-zero density.\nPlanar KDE shows the same corridors but spreads them into areas without roads; NKDE pinpoints the road segments."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#are-hotspots-stable-over-the-year",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#are-hotspots-stable-over-the-year",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "7. Are hotspots stable over the year?",
+    "text": "7. Are hotspots stable over the year?\n\n\n\n\n\n\n\n\n\n\n\n\nSpatio-temporal KDE (bootstrap bandwidths: 3.1 km, 76 days)\n\nStable core: the hotspot in south-eastern Bangkok near Samut Prakan, and the corridor into Pathum Thani, persist all year\nChanging periphery: the corridor towards Samut Sakhon is faint in February and April, but prominent by July and October\n\nThe 76-day bandwidth shows seasonal change; short holiday peaks are smoothed out (see slide 5)."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#are-accidents-clustered-it-depends-on-the-null-model",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#are-accidents-clustered-it-depends-on-the-null-model",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "8. Are accidents clustered? It depends on the null model",
+    "text": "8. Are accidents clustered? It depends on the null model\n\n\nPlanar L-function vs planar CSR (BMR)\n\n\n\n\n\n\n\n\n\nStrong clustering at all distances, but planar CSR assumes accidents can occur anywhere, including fields and rivers.\n\nNetwork K-function vs CSR on the network (Bangkok)\n\n\n\n\n\n\n\n\n\n\n[Network K-function result]\n\nTakeaway: much of the planar “clustering” reflects the fact that accidents are confined to a few roads. The network test is the fairer comparison."
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#limitations",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#limitations",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "9. Limitations",
+    "text": "9. Limitations\n\n\nData\n\nObservation process: only national road agencies’ records; city streets are likely missing\nNo exposure data: without traffic volumes, concentration ≠ risk\nLocation quality: some accidents share exact locations, possibly fixed reference points\nSingle year (2022) and a 2026 road network for 2022 accidents\n\n\nMethods\n\nResults depend on bandwidth (tested at several values for planar KDE and NKDE)\nNetwork CSR assumes equal exposure on every road\nNetwork K-function covers Bangkok only, with 50 simulations, for computational reasons\nThe day-of-year STKDE smooths out short holiday peaks"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#public-safety-implications",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.html#public-safety-implications",
+    "title": "Where Do Road Accidents Concentrate in the Bangkok Metropolitan Region?",
+    "section": "10. Public-safety implications",
+    "text": "10. Public-safety implications\n\n\nSupported directly by the analysis\n\nTarget road segments, not whole provinces: focus audits, enforcement and engineering reviews on the high-density corridors\nInvestigate repeated locations at site level (junction design, signage, lighting)\nTime campaigns for the New Year and Songkran periods and the second half of the year\nMonitor the emerging Samut Sakhon corridor\nEmergency response: check rescue-unit coverage along the high-density corridors\n\n\nRequires additional information\n\nTraffic volumes, to turn counts into risk per vehicle-kilometre\nCause, vehicle and road-design data, before designing specific interventions\nCity-street records from the Bangkok Metropolitan Administration\nMulti-year data, to confirm that the patterns persist and to evaluate campaigns\n\n\n\n\n\n\n\n\nNote\n\n\nThese findings describe where recorded accidents concentrate; they do not show why they occur."
   }
 ]
