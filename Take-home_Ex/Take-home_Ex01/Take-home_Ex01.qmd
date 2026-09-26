@@ -1,6 +1,6 @@
 ---
 title: "Take-home Exercise 1: Geospatial Analytics for Public Safety"
-subtitle: "Spatial and Spatio-temporal Point Patterns of Road Traffic Accidents in the Bangkok Metropolitan Region, 2022"
+subtitle: "Network-constrained and Spatio-temporal Point Patterns of Road Traffic Accidents in the Bangkok Metropolitan Region, 2022"
 author: "Wang Xiaohan"
 date: "2026-09-23"
 date-modified: "last-modified"
@@ -18,22 +18,37 @@ execute:
 # 1. Introduction
 
 Road traffic crashes are a major public-safety problem in Thailand. WHO estimates about 18,218 road deaths in 2021, a rate of 25.4 per 100,000 population and one of the highest in Asia, with motorcyclists accounting for most deaths. The Bangkok Metropolitan Region (BMR), comprising Bangkok and five vicinity provinces, is the country's largest urban area, where crash patterns are likely to vary strongly across space and time. However, a concentration of crashes does not necessarily mean higher risk, as it may also reflect traffic volume, road density or how crashes are recorded.
-This study analyses road traffic accidents in BMR in 2022 using spatial and spatio-temporal point-pattern analysis. First-order analysis examines where and when accident intensity is highest; second-order analysis tests whether accidents cluster beyond this uneven intensity. A network-constrained analysis then checks whether these conclusions hold when accidents are restricted to the road network.
+
+Road accidents can only happen on roads, so this study treats them as events on a road network. Following the Network Constrained Spatial Point Patterns Analysis (NetSPAA) approach, the main analysis uses network kernel density estimation (NKDE) for first-order properties and network K- and G-functions for second-order properties. Planar and spatio-temporal methods from earlier exercises are used to describe temporal variation and to compare planar and network results.
 
 ## 1.1 Research questions
 
 1.  Where and when are road traffic accidents in BMR concentrated in 2022? (first-order)
-2.  After accounting for this uneven intensity, do accidents show evidence of clustering, inhibition or approximate randomness? (second-order)
-3.  Do the conclusions change when the analysis is constrained to the road network? (value-added)
+2.  Are accidents clustered, regular or approximately random along the road network, compared with complete spatial randomness on the network? (second-order)
+3.  Do conclusions change between planar and network-constrained views, and between bandwidths? (comparison and value-added)
 
 # 2. Getting Started
 
-A fixed random seed is set at the start so that jittering and all Monte Carlo simulations give the same results each time the report is rendered.
+The four packages used in the network-constrained analysis are loaded first, followed by the packages used for planar and spatio-temporal analysis. A fixed random seed makes all Monte Carlo simulations reproducible.
 
 ```{r}
-pacman::p_load(sf, spatstat, sparr, stpp, spNetwork, terra, tmap, tidyverse, lubridate)
+pacman::p_load(sf, spNetwork, tmap, tidyverse,
+               spatstat, sparr, stpp, terra)
 set.seed(1234)
 ```
+
+
+| Package | Purpose |
+|----|----|
+| sf | import, wrangle and transform geospatial data |
+| spNetwork | lixels, network KDE, network K- and G-functions |
+| tmap | thematic mapping |
+| tidyverse | data wrangling, dates (`month()`, `yday()`) and statistical graphics |
+| spatstat | ppp/owin objects, planar KDE, Clark-Evans test, G/L functions, envelopes |
+| sparr | spatio-temporal KDE |
+| stpp | spatio-temporal K-function |
+| terra | convert planar KDE output to a raster for tmap |
+
 
 # 3. The Data
 
@@ -42,15 +57,15 @@ set.seed(1234)
 | Thailand Road Accident \[2019-2022\] | Kaggle (Thaweewat R.) | CSV | 2026-09-23 | Thailand, 2019-2022 (2022 used) |
 | Thailand ADM1 boundaries | geoBoundaries | Shapefile | 2026-09-23 | Thailand provinces |
 | OpenStreetMap roads | Geofabrik (extract 2026-09-21) | Shapefile | 2026-09-22 | Thailand |
+
 ## 3.1 Study area: Bangkok Metropolitan Region (BMR)
 
-BMR is operationalised as Bangkok plus its five vicinity provinces, taken from the full-resolution geoBoundaries ADM1 layer (not the simplified version, to avoid wrongly dropping accidents near provincial borders and the coastline).
+BMR is operationalised as Bangkok plus its five vicinity provinces, taken from the full-resolution geoBoundaries ADM1 layer (not the simplified version, to avoid wrongly dropping accidents near provincial borders and the coastline). The province names are checked first, because five of the six end with " Province".
 
 ```{r}
-st_read(dsn = "data/geospatial",
-        layer = "geoBoundaries-THA-ADM1",
-        quiet = TRUE)$shapeName %>%
-  sort()
+table(st_read(dsn = "data/geospatial",
+              layer = "geoBoundaries-THA-ADM1",
+              quiet = TRUE)$shapeName)
 ```
 
 ```{r}
@@ -61,20 +76,19 @@ bmr_names <- c("Bangkok", "Nonthaburi Province", "Nakhon Pathom Province",
 bmr_sf <- st_read(dsn = "data/geospatial",
                   layer = "geoBoundaries-THA-ADM1") %>%
   filter(shapeName %in% bmr_names) %>%
-  mutate(shapeName = str_remove(shapeName, " Province")) %>%
   st_transform(crs = 32647)
 ```
 
+The output should show 6 provinces in WGS 84 / UTM zone 47N (EPSG:32647). `st_is_valid()` checks that no polygon geometry is invalid.
+
 ```{r}
-nrow(bmr_sf)            
-st_crs(bmr_sf)$epsg     
+nrow(bmr_sf)
+st_crs(bmr_sf)$epsg
 any(!st_is_valid(bmr_sf))
 ```
 
 ```{r}
-bmr_sf <- st_make_valid(bmr_sf)
-bmr_union <- bmr_sf %>%
-  st_union()
+bmr_union <- st_union(bmr_sf)
 ```
 
 ## 3.2 Road accident data
@@ -85,90 +99,130 @@ acc_raw <- read_csv("data/aspatial/thai_road_accident_2019_2022.csv",
 glimpse(acc_raw)
 ```
 
+`incident_datetime` is already parsed as a date-time (`<dttm>`), and `latitude` and `longitude` are numeric.
+
+## 3.3 Road network data
+
+Following the NetSPAA workflow, the road network is imported as a line feature layer. Only roads intersecting BMR are read, because the full Thailand layer is over 600 MB; the spatial filter is converted to EPSG:4326 to match the OSM file. Only major road classes are kept, because all accidents in the dataset are recorded by national road agencies (Section 5.7), which manage these roads.
+
+```{r}
+bmr_wkt <- bmr_union %>%
+  st_transform(crs = 4326) %>%
+  st_as_text()
+
+major_roads <- c("motorway", "motorway_link", "trunk", "trunk_link",
+                 "primary", "primary_link", "secondary", "secondary_link",
+                 "tertiary", "tertiary_link")
+
+network <- st_read(dsn = "data/geospatial",
+                   layer = "gis_osm_roads_free_1",
+                   wkt_filter = bmr_wkt) %>%
+  filter(fclass %in% major_roads) %>%
+  select(osm_id, fclass, name) %>%
+  st_transform(crs = 32647)
+```
+
+spNetwork expects both layers to carry complete CRS information, so the CRS and the road classes kept are checked.
+
+```{r}
+st_crs(network)$epsg
+table(network$fclass)
+```
+
+```{r}
+dir.create("data/rds", recursive = TRUE, showWarnings = FALSE)
+write_rds(network, "data/rds/network.rds")
+```
+
+
 # 4. Study Design
 
 ## 4.1 Point event definition
 
-A point event is one recorded road traffic accident (one unique `acc_code`) that occurred between 1 January and 31 December 2022, located by its reported longitude and latitude, and falling inside BMR. Events are treated as an unmarked point pattern: attributes such as fatalities or vehicle type are not used as weights.
+A point event is one recorded road traffic accident (one unique `acc_code`) that occurred between 1 January and 31 December 2022, located by its reported longitude and latitude, and falling inside BMR. For the network analysis, events must also lie within 100 m of a major road, and are snapped to the network by spNetwork. Events are treated as an unmarked point pattern: attributes such as fatalities or vehicle type are not used as weights.
 
 | Issue | Handling | Section |
 |----|----|----|
 | Duplicate records | Removed by unique `acc_code` | 5.3 |
-| Repeated locations | Jittered with `rjitter()` | 5.9 |
+| Repeated locations | Kept, counted with `duplicated()` and discussed | 5.9 |
 | Missing coordinates | Removed | 5.2 |
-| Swapped lat/long | Corrected | 5.2 |
+| Swapped lat/long | Checked and corrected | 5.2 |
 | Coordinates outside Thailand | Removed | 5.2 |
-| Outside BMR | Removed with `st_filter()` | 5.4 |
+| Outside BMR | Removed with `st_intersects()` | 5.4 |
 | Outside 2022 | Removed | 5.1 |
-| Recorded province differs from location | Checked and reported | 5.5 |
+| More than 100 m from a major road | Excluded from the network analysis | 5.10 |
 
 ## 4.2 Spatial and temporal study window
 
 | Item | Decision | Justification |
 |----|----|----|
-| Spatial window | Union of 6 BMR provinces | Operationalises "Bangkok Greater Metropolitan Area" with official provincial boundaries, giving a clear and reproducible extent |
+| Spatial window | Union of 6 BMR provinces (planar); major road network within BMR (network) | Operationalises "Bangkok Greater Metropolitan Area" with official provincial boundaries; the network is the space where accidents can occur |
 | Temporal window | 1 Jan - 31 Dec 2022 | Required by the brief for the 2019-2022 dataset |
-| Temporal unit | Month (STKDE, 6.7); day of year (STKDE, 6.8 and 7.6); day and hour (graphics) | Months give enough events per slice; day of year allows data-driven temporal bandwidths; day and hour reveal holiday and daily cycles |
+| Temporal unit | Month (STKDE, 6.5); day of year (STKDE, 6.6; space-time K-function, 7.3; daily graphic, 6.1) | Months give enough events per slice; day of year allows data-driven temporal bandwidths and shows holiday peaks |
 
 ## 4.3 Methodological decisions
 
 | Decision | Choice | Justification |
 |----|----|----|
 | CRS | WGS 84 / UTM 47N (EPSG:32647) | Metric units for bandwidth and distance; zone 47N covers Bangkok |
-| KDE kernel | Gaussian | Standard smooth kernel; results depend far more on bandwidth than on kernel choice |
-| KDE bandwidth | Compared bw.diggle, bw.ppl, bw.scott, fixed 0.5-5 km, adaptive | Bandwidth controls the level of detail, so sensitivity is tested (Section 6) |
-| Distance range | 0-10 km | Covers junction- to district-scale interaction while staying well below the width of BMR |
-| Edge correction | Border (CSR tests); modified border (inhomogeneous tests) | Border is fast for thousands of points; the modified border is spatstat's primary estimate for Linhom |
-| Simulations | 99 (CSR), 39 (inhomogeneous) | Global envelopes with rank 1 give α = 0.01 and α = 0.025 respectively |
-| Null models | CSR; inhomogeneous Poisson | CSR as a baseline; inhomogeneous Poisson separates interaction from uneven intensity (Section 7) |
+| Network | OSM major roads (motorway to tertiary, with links) | Matches the agencies that recorded the accidents |
+| Lixels | 500 m, minimum 250 m | About half the NKDE bandwidth, giving detail without too many lixels |
+| NKDE | Quartic kernel, simple method, bandwidth 1 km (sensitivity: 0.5 and 2 km) | Quartic and simple follow the NetSPAA workflow; 1 km covers junction-to-corridor scale |
+| Network K/G-functions | 0-5 km, step 100 m, width 200 m, 50 simulations, Bangkok only | Range covers local to corridor scale; Bangkok only for computation time |
+| Planar KDE | Gaussian kernel; bw.diggle, bw.ppl, bw.scott, fixed 0.5-5 km, adaptive compared | Used for comparison with the network view |
+| Planar edge correction | Border (default for large patterns) | Fast for thousands of points |
+| Planar simulations | 99 | Global envelopes with rank 1 give α = 0.01 |
+| Null models | CSR on the network (binomial process on the network); planar CSR for comparison | Network CSR accounts for the fact that accidents can only occur on roads |
 
 ## 4.4 Analytical assumptions
 
 | Method | Key assumption | Reasonable here? |
 |----|----|----|
-| KDE | Accidents can occur anywhere in the window | No: accidents occur only on roads, so planar KDE spreads intensity into areas with no roads (addressed in Section 8) |
-| L-function vs CSR | Constant intensity across BMR | No: intensity clearly varies, so clustering under CSR may just reflect uneven intensity |
-| Inhomogeneous L-function | KDE correctly estimates the true intensity | Partly: results depend on bandwidth, so two bandwidths are compared |
-| STKDE | Spatial pattern changes smoothly over time | Reasonable for seasonal change, but short holiday peaks are smoothed out (76-day bandwidth in 6.8) |
-| Space-time K-function | Constant intensity in space and time | No: like CSR, it cannot separate interaction from uneven intensity |
-| All methods | Recorded accidents represent all accidents | No: data come mainly from highway and rural road agencies, so city streets are likely under-recorded |
+| NKDE | Accidents occur on the network, and network distance is the relevant distance | Yes for accidents within 100 m of a major road; not for accidents on minor roads, which are excluded |
+| Network K/G vs network CSR | Accidents are equally likely anywhere on the network | Partly: traffic volume varies strongly between roads, so clustering may reflect exposure rather than interaction |
+| Planar KDE | Accidents can occur anywhere in the window | No: planar KDE spreads intensity into areas without roads |
+| Planar G/L vs CSR | Constant intensity across BMR | No: intensity clearly varies, so clustering under planar CSR may just reflect uneven intensity |
+| STKDE | Spatial pattern changes smoothly over time | Reasonable for seasonal change, but short holiday peaks are smoothed out |
+| Space-time K-function | Constant intensity in space and time | No: like planar CSR, it cannot separate interaction from uneven intensity |
+| All methods | Recorded accidents represent all accidents | No: data come from national road agencies, so city streets are likely under-recorded |
+
 
 # 5. Data Wrangling and Quality Assessment
 
-## 5.1 Temporal parsing and filtering
+## 5.1 Temporal filtering and derived time fields
 
-`as_datetime()` is used because it works whether `read_csv()` has already parsed the column as a date-time or left it as text.
+Records are kept if they occurred in 2022. The boundaries are written as seconds since 1 January 1970 (UTC), because `incident_datetime` is stored in UTC: 1640995200 is 2022-01-01 00:00 and 1672531200 is 2023-01-01 00:00.
 
 ```{r}
-acc_raw <- acc_raw %>%
-  mutate(incident_datetime = as_datetime(incident_datetime))
-
-sum(is.na(acc_raw$incident_datetime)) 
+sum(is.na(acc_raw$incident_datetime))
 ```
 
 ```{r}
 acc_2022 <- acc_raw %>%
-  filter(year(incident_datetime) == 2022) %>%
-  mutate(Date = as_date(incident_datetime)) %>%
+  filter(as.numeric(incident_datetime) >= 1640995200,
+         as.numeric(incident_datetime) < 1672531200) %>%
+  mutate(DayofYear = yday(incident_datetime)) %>%
   mutate(Month_num = month(incident_datetime)) %>%
-  mutate(Month_fac = month(incident_datetime, label = TRUE, abbr = FALSE)) %>%
-  mutate(Weekday = wday(incident_datetime, label = TRUE)) %>%
-  mutate(Hour = hour(incident_datetime))
+  mutate(Month_fac = month(incident_datetime,
+                           label = TRUE,
+                           abbr = FALSE))
+nrow(acc_2022)
 ```
 
 ## 5.2 Missing, swapped and invalid coordinates
 
 ```{r}
-sum(is.na(acc_2022$latitude) | is.na(acc_2022$longitude)) 
+sum(is.na(acc_2022$latitude) | is.na(acc_2022$longitude))
 ```
 
-Records whose latitude and longitude appear to be swapped are corrected rather than dropped.
+Records whose latitude and longitude appear to be swapped (latitude in Thailand's longitude range and vice versa) are corrected rather than dropped.
 
 ```{r}
 acc_fixed <- acc_2022 %>%
-  mutate(swapped = between(latitude, 97, 106) & between(longitude, 5, 21)) %>%
-  mutate(latitude_fix = if_else(swapped, longitude, latitude),
-         longitude_fix = if_else(swapped, latitude, longitude))
+  mutate(swapped = latitude >= 97 & latitude <= 106 &
+                   longitude >= 5 & longitude <= 21) %>%
+  mutate(latitude_fix = ifelse(swapped, longitude, latitude),
+         longitude_fix = ifelse(swapped, latitude, longitude))
 
 sum(acc_fixed$swapped, na.rm = TRUE)
 ```
@@ -176,8 +230,8 @@ sum(acc_fixed$swapped, na.rm = TRUE)
 ```{r}
 acc_valid <- acc_fixed %>%
   filter(!is.na(latitude_fix), !is.na(longitude_fix)) %>%
-  filter(between(longitude_fix, 97, 106),
-         between(latitude_fix, 5, 21))
+  filter(longitude_fix >= 97, longitude_fix <= 106,
+         latitude_fix >= 5, latitude_fix <= 21)
 ```
 
 ## 5.3 Duplicate records
@@ -186,7 +240,7 @@ acc_valid <- acc_fixed %>%
 sum(duplicated(acc_valid$acc_code))
 
 acc_dedup <- acc_valid %>%
-  distinct(acc_code, .keep_all = TRUE)
+  filter(!duplicated(acc_code))
 ```
 
 ## 5.4 Creating sf object and spatial filtering
@@ -198,7 +252,7 @@ acc_sf <- acc_dedup %>%
   st_transform(crs = 32647)
 
 acc_bmr_sf <- acc_sf %>%
-  st_filter(bmr_union)
+  filter(lengths(st_intersects(acc_sf, bmr_union)) > 0)
 ```
 
 ## 5.5 Location consistency check
@@ -206,23 +260,7 @@ acc_bmr_sf <- acc_sf %>%
 Each point is joined to the province it falls in and compared with the province recorded in the data. `distinct()` removes duplicate rows created by points lying exactly on a provincial border.
 
 ```{r}
-acc_bmr_sf <- acc_bmr_sf %>%
-  st_join(bmr_sf %>% select(shapeName)) %>%
-  distinct(acc_code, .keep_all = TRUE) %>%
-  rename(province_gb = shapeName)
-
-acc_bmr_df <- acc_bmr_sf %>%
-  st_drop_geometry()
-
-acc_bmr_df %>%
-  filter(province_en != province_gb) %>%
-  count(province_en, province_gb, sort = TRUE)
-```
-
-## 5.6 Data-quality summary
-
-```{r}
-tibble(
+data.frame(
   step = c("Raw (2019-2022)", "Year 2022", "Valid coordinates",
            "After de-duplication", "Inside BMR"),
   n = c(nrow(acc_raw), nrow(acc_2022), nrow(acc_valid),
@@ -230,14 +268,21 @@ tibble(
 )
 ```
 
+Of the 81,735 records, 21,032 occurred in 2022. All dates were parsed successfully. 189 records lacked coordinates and were removed; no swapped or out-of-Thailand coordinates and no duplicate `acc_code` values were found. 3,599 accidents fall inside BMR.
+
+## 5.6 Accidents by province
+
+```{r}
+table(acc_bmr_sf$province_en)
+```
+
 ## 5.7 Observation process
 
 ```{r}
-acc_bmr_df %>%
-  count(agency, sort = TRUE)
+table(acc_bmr_sf$agency)
 ```
 
-:::
+::: {.callout-note title="Interpretation"}
 All 3,599 BMR accidents were reported by national road agencies: the Department of Highways (80.1%), the Expressway Authority of Thailand (13.1%) and the Department of Rural Roads (6.8%). None come from the Bangkok Metropolitan Administration, which manages most local streets in Bangkok. Accidents on these streets are therefore likely under-represented, and concentrations in the following analysis should be read as patterns of recorded accidents on highways, expressways and rural roads, not of all accidents in BMR.
 :::
 
@@ -252,7 +297,7 @@ tm_shape(acc_bmr_sf) +
 tm_title("Road accidents in BMR, 2022")
 ```
 
-:::
+::: {.callout-note title="Interpretation"}
 The 3,599 recorded accidents are not spread evenly across BMR but align along linear corridors radiating from Bangkok towards Pathum Thani, Samut Prakan and Samut Sakhon, with sparser points in Nakhon Pathom. Inner Bangkok shows relatively few accidents despite its density, consistent with the absence of BMA-managed streets from the data (Section 5.7). This visual concentration does not yet indicate clustering or higher risk: it must be assessed against a reference model (Section 7), and the linear pattern suggests that the road network itself shapes where accidents can occur.
 :::
 
@@ -263,16 +308,17 @@ tm_shape(bmr_sf) +
   tm_polygons(fill = "grey95") +
 tm_shape(acc_bmr_sf) +
   tm_dots(size = 0.1, fill = "red") +
-tm_facets(by = "Month_fac", free.coords = FALSE)
+tm_facets(by = "Month_fac",
+          free.coords = FALSE)
 ```
 
-:::
-Faceting by month shows that accidents occur along the same major corridors throughout 2022, suggesting that the spatial structure of recorded accidents is largely stable over time rather than shifting between areas. Differences in the number of points between months are difficult to judge visually from dot maps; monthly counts (Section 6.1) and spatio-temporal KDE (Section 6.7) are used to assess temporal variation in intensity more rigorously.
+::: {.callout-note title="Interpretation"}
+Faceting by month shows that accidents occur along the same major corridors throughout 2022, suggesting that the spatial structure of recorded accidents is largely stable over time rather than shifting between areas. Differences in the number of points between months are difficult to judge visually from dot maps; monthly counts (Section 6.1) and spatio-temporal KDE (Sections 6.5 and 6.6) are used to assess temporal variation in intensity more rigorously.
 :::
 
 ## 5.9 Converting to spatstat objects
 
-`st_geometry()` keeps only the point locations, so the ppp object carries no data-frame marks.
+For the planar and spatio-temporal methods, the accidents are converted to a ppp object and combined with an owin object of BMR. `st_geometry()` keeps only the point locations, so the ppp object carries no marks.
 
 ```{r}
 acc_ppp <- as.ppp(st_geometry(acc_bmr_sf))
@@ -281,13 +327,10 @@ summary(acc_ppp)
 
 ```{r}
 any(duplicated(acc_ppp))
-sum(multiplicity(acc_ppp) > 1)
+sum(duplicated(acc_ppp))
 ```
 
-```{r}
-acc_ppp_jit <- rjitter(acc_ppp, retry = TRUE, nsim = 1, drop = TRUE)
-any(duplicated(acc_ppp_jit))
-```
+Some accidents share their exact location with another accident. These may be repeated accidents at the same site, or locations recorded at fixed reference points such as kilometre markers. They are kept, because removing them would discard real accidents; the effect on the planar G-function is discussed in Section 7.2.
 
 ```{r}
 bmr_owin <- as.owin(bmr_union)
@@ -295,57 +338,67 @@ plot(bmr_owin)
 ```
 
 ```{r}
-accBMR_ppp <- acc_ppp_jit[bmr_owin]
+accBMR_ppp <- acc_ppp[bmr_owin]
 accBMR_ppp.km <- rescale.ppp(accBMR_ppp, 1000, "km")
-summary(accBMR_ppp.km)
 plot(accBMR_ppp.km)
 ```
 
+## 5.10 Preparing events for the network analysis
+
+spNetwork snaps each event to its nearest road segment. To avoid snapping accidents that lie far from any major road, accidents are kept only if they fall within a 100 m buffer of the major road network.
+
 ```{r}
-dir.create("data/rds", recursive = TRUE, showWarnings = FALSE)
-write_rds(acc_bmr_sf, "data/rds/acc_bmr_sf.rds")
-write_rds(accBMR_ppp.km, "data/rds/accBMR_ppp_km.rds")
+road_buffer <- st_buffer(network, dist = 100)
+
+acc_bmr_sf <- acc_bmr_sf %>%
+  mutate(near_road = lengths(st_intersects(acc_bmr_sf, road_buffer)) > 0)
+
+table(acc_bmr_sf$near_road)
+
+acc_net <- acc_bmr_sf %>%
+  filter(near_road)
 ```
 
-# 6. First-order Spatial Point Patterns Analysis
+```{r}
+write_rds(acc_bmr_sf, "data/rds/acc_bmr_sf.rds")
+write_rds(acc_net, "data/rds/acc_net.rds")
+```
+
+Before the analysis, the network and the events are plotted together, as in the NetSPAA workflow.
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+plot(st_geometry(network))
+plot(st_geometry(acc_net), add = T, col = 'red', pch = 19, cex = 0.3)
+```
+
+::: {.callout-note title="Interpretation"}
+Almost all accidents (3,594 of 3,599) lie within 100 m of a major road, which supports treating accidents as events on the major road network. The five excluded accidents are likely on minor roads or mislocated. The plot shows that accidents follow a small number of major roads, while much of the network carries few or no recorded accidents.
+:::
+
+# 6. First-order Point Patterns Analysis
 
 ## 6.1 Temporal variation
 
 ```{r}
-ggplot(acc_bmr_df, aes(x = Month_fac)) +
-  geom_bar() +
-  labs(x = "Month", y = "No. of accidents") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplot(acc_bmr_sf, aes(x = Month_num)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Month (1 = January)", y = "No. of accidents")
 ```
 
-Shaded periods are the Songkran and New Year "seven dangerous days" campaigns.
+The red dashed lines mark the end of the New Year campaign (4 January, day 4), the Songkran "seven dangerous days" (11-17 April, days 101-107) and the start of the next New Year campaign (29 December, day 363).
 
 ```{r}
-acc_daily <- acc_bmr_df %>%
-  count(Date)
-
-ggplot(acc_daily, aes(x = Date, y = n)) +
-  annotate("rect", xmin = ymd("2022-01-01"), xmax = ymd("2022-01-04"),
-           ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
-  annotate("rect", xmin = ymd("2022-04-11"), xmax = ymd("2022-04-17"),
-           ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
-  annotate("rect", xmin = ymd("2022-12-29"), xmax = ymd("2022-12-31"),
-           ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
-  geom_line() +
-  labs(x = "Date", y = "No. of accidents per day")
+ggplot(acc_bmr_sf, aes(x = DayofYear)) +
+  geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = c(4, 101, 107, 363),
+             linetype = "dashed", colour = "red") +
+  labs(x = "Day of year, 2022", y = "No. of accidents per day")
 ```
 
-```{r}
-acc_bmr_df %>%
-  count(Weekday, Hour) %>%
-  ggplot(aes(x = Hour, y = Weekday, fill = n)) +
-  geom_tile() +
-  scale_fill_viridis_c() +
-  labs(x = "Hour of day", y = NULL, fill = "Accidents")
-```
-
-:::
-Recorded accidents vary over time at three scales. Monthly counts range from about 210 in February to about 395 in October, with generally higher counts in the second half of 2022. Daily counts usually fall between 5 and 15, but the most prominent peaks coincide with the New Year and Songkran campaign periods, reaching about 36 accidents at the end of December. By time of day, accidents are fewest between midnight and 6 a.m. and most frequent from late afternoon to evening, with the highest values on Friday evening. These peaks coincide with holiday travel and commuting periods, but the data alone cannot show why they occur. Counts are not adjusted for traffic volume, cover only recorded accidents on national roads, and come from a single year, so peaks indicate more recorded accidents rather than necessarily higher risk.
+::: {.callout-note title="Interpretation"}
+Recorded accidents vary over time at two scales. Monthly counts range from about 210 in February to about 395 in October, with generally higher counts in the second half of 2022. Daily counts usually fall between 5 and 15, but the most prominent peaks coincide with the New Year and Songkran campaign periods, reaching about 36 accidents at the end of December. These peaks coincide with holiday travel periods, but the data alone cannot show why they occur. Counts are not adjusted for traffic volume, cover only recorded accidents on national roads, and come from a single year, so peaks indicate more recorded accidents rather than necessarily higher risk.
 :::
 
 ## 6.2 Intensity by province
@@ -353,16 +406,97 @@ Recorded accidents vary over time at three scales. Monthly counts range from abo
 ```{r}
 bmr_sf <- bmr_sf %>%
   mutate(n_acc = lengths(st_intersects(bmr_sf, acc_bmr_sf))) %>%
-  mutate(area_km2 = as.numeric(st_area(bmr_sf)) / 1e6) %>%
+  mutate(area_km2 = as.numeric(st_area(bmr_sf)) / 1000000) %>%
   mutate(acc_per_km2 = n_acc / area_km2)
 
 bmr_sf %>%
-  st_drop_geometry() %>%
-  select(shapeName, n_acc, area_km2, acc_per_km2) %>%
-  arrange(desc(acc_per_km2))
+  select(shapeName, n_acc, area_km2, acc_per_km2)
 ```
 
-## 6.3 KDE with automatic bandwidth selection
+## 6.3 Network KDE (NKDE)
+
+### 6.3.1 Preparing the lixels objects
+
+Before computing NKDE, the network is cut into lixels. The lixel length is set to 500 m and the minimum length to 250 m, about half of the 1 km bandwidth.
+
+```{r}
+lixels <- lixelize_lines(network,
+                         500,
+                         mindist = 250)
+```
+
+### 6.3.2 Generating line centre points
+
+```{r}
+samples <- lines_center(lixels)
+```
+
+### 6.3.3 Performing NKDE
+
+The quartic kernel and the simple method are used, as in the NetSPAA workflow. The bandwidth is 1 km, measured along the network. `grid_shape = c(3, 3)` splits the large BMR network into a 3 x 3 grid so that the calculation fits in memory; it does not change the result.
+
+```{r}
+densities <- nkde(network,
+                  events = acc_net,
+                  w = rep(1, nrow(acc_net)),
+                  samples = samples,
+                  kernel_name = "quartic",
+                  bw = 1000,
+                  div = "bw",
+                  method = "simple",
+                  digits = 1,
+                  tol = 1,
+                  grid_shape = c(3, 3),
+                  max_depth = 8,
+                  agg = 5,
+                  sparse = TRUE,
+                  verbose = FALSE)
+```
+
+### 6.3.4 Visualising NKDE
+
+The density values are inserted into `samples` and `lixels`, then rescaled from events per metre to events per kilometre.
+
+```{r}
+samples$density <- densities
+lixels$density <- densities
+
+samples$density <- samples$density * 1000
+lixels$density <- lixels$density * 1000
+
+write_rds(lixels, "data/rds/lixels.rds")
+```
+
+A static map is used instead of the interactive `tmap_mode('view')`, because drawing about 60,000 lixels interactively would make the HTML page very large. Road segments with zero density are drawn in grey, so that the coloured segments show where recorded accidents concentrate. Quantile classes are used because most segments have very low values.
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+lixels_pos <- lixels %>%
+  filter(density > 0)
+
+tm_shape(bmr_sf) +
+  tm_polygons(fill = "grey95") +
+tm_shape(network) +
+  tm_lines(col = "grey80") +
+tm_shape(lixels_pos) +
+  tm_lines(col = "density",
+           col.scale = tm_scale_intervals(style = "quantile",
+                                          values = "viridis"),
+           col.legend = tm_legend(title = "NKDE (events per km)"),
+           lwd = 2) +
+tm_title("Network KDE of road accidents, BMR 2022")
+```
+
+::: {.callout-note title="Interpretation"}
+NKDE (quartic kernel, 1 km bandwidth measured along the network) estimates accident density on each road segment rather than across continuous space. Density is concentrated on a small number of specific roads: a north–south corridor through eastern Bangkok into Pathum Thani, roads across southern Bangkok into Samut Prakan, where the highest values occur, and a south-western corridor towards Samut Sakhon. Most of the major road network, including much of inner Bangkok, shows zero or near-zero density. Because density is calculated along roads, it identifies particular road segments rather than broad areas, which is more directly useful for targeting interventions. It reflects only accidents recorded by national road agencies, and is not adjusted for traffic volume, so high density does not necessarily mean higher risk.
+:::
+
+## 6.4 Planar KDE for comparison
+
+Planar KDE is computed to compare the network view with the conventional view, in which accidents can occur anywhere in the window.
+
+### 6.4.1 Automatic bandwidth selection
 
 ```{r}
 bw.diggle(accBMR_ppp.km)
@@ -391,57 +525,69 @@ plot(kde_accBMR.ppl, main = "bw.ppl")
 plot(kde_accBMR.scott, main = "bw.scott")
 ```
 
-## 6.4 Bandwidth sensitivity
+### 6.4.2 Bandwidth sensitivity
 
 ```{r}
 #| fig-width: 10
 #| fig-height: 8
 par(mfrow = c(2, 2))
 for (s in c(0.5, 1, 2, 5)) {
-  plot(density(accBMR_ppp.km, sigma = s, edge = TRUE, kernel = "gaussian"),
+  plot(density(accBMR_ppp.km,
+               sigma = s,
+               edge = TRUE,
+               kernel = "gaussian"),
        main = paste("sigma =", s, "km"))
 }
 ```
 
-## 6.5 Fixed vs adaptive bandwidth
+### 6.4.3 Fixed vs adaptive bandwidth
 
 ```{r}
-kde_accBMR_adaptive <- adaptive.density(accBMR_ppp.km, method = "kernel")
+#| fig-width: 12
+#| fig-height: 5
+kde_accBMR_adaptive <- adaptive.density(accBMR_ppp.km,
+                                        method = "kernel")
 par(mfrow = c(1, 2))
 plot(kde_accBMR.ppl, main = "Fixed bandwidth (bw.ppl)")
 plot(kde_accBMR_adaptive, main = "Adaptive bandwidth")
 ```
 
-## 6.6 Mapping the selected KDE with tmap
+### 6.4.4 Mapping the selected planar KDE
+
+bw.ppl (0.79 km) is selected. bw.diggle (0.09 km) and the adaptive KDE produce very spiky surfaces dominated by a few sharp peaks, while bw.scott (about 5.2 km x 4.1 km) and the 5 km bandwidth merge the corridors into one broad hotspot. The sensitivity plots show that bandwidths of about 0.5-1 km preserve the corridor structure. For mapping, the KDE is computed on the metre-based ppp object, so that the raster coordinates match EPSG:32647.
 
 ```{r}
-kde_chosen <- kde_accBMR.ppl
+kde_accBMR_m <- density(accBMR_ppp,
+                        sigma = bw.ppl,
+                        edge = TRUE,
+                        kernel = "gaussian")
 
-kde_df <- as.data.frame(kde_chosen) %>%
-  mutate(x = x * 1000, y = y * 1000,
-         value = pmax(value, 0))
-kde_rast <- rast(kde_df, type = "xyz", crs = "EPSG:32647")
-
-tm_shape(kde_rast) +
-   tm_raster(col.scale = tm_scale_continuous_sqrt(values = "viridis"),
-            col.legend = tm_legend(title = "Accidents per km²")) +
-tm_shape(bmr_sf) +
-  tm_borders(col = "grey40") +
-  tm_text("shapeName", size = 0.7, col = "white") +
-tm_title("KDE of road accidents, BMR 2022")
+kde_accBMR_terra <- rast(kde_accBMR_m)
+crs(kde_accBMR_terra) <- "EPSG:32647"
+kde_accBMR_terra
 ```
 
-:::
-Using the bw.ppl bandwidth (0.79 km), estimated accident intensity forms a network of linear corridors rather than broad areas: a north–south corridor through Bangkok into Pathum Thani, an east–west corridor across southern Bangkok into Samut Prakan, and a south-western corridor towards Samut Sakhon, with fainter corridors in Nakhon Pathom. The highest intensity (about 26 accidents per km²) lies in southern Bangkok near the Samut Prakan boundary, with a secondary peak in eastern Samut Prakan. A square-root colour scale is used so that lower-intensity corridors remain visible. Because the data cover only accidents recorded by national road agencies, low intensity in inner Bangkok may reflect missing records rather than safer streets, and planar KDE spreads intensity beyond the roads themselves .
+```{r}
+tm_shape(kde_accBMR_terra) +
+  tm_raster(col.scale = tm_scale_continuous(values = "viridis"),
+            col.legend = tm_legend(title = "Density values")) +
+tm_shape(bmr_sf) +
+  tm_borders(col = "grey40") +
+tm_title("Planar KDE of road accidents, BMR 2022") +
+  tm_graticules(labels.size = 0.7) +
+  tm_compass()
+```
+
+::: {.callout-note title="Interpretation"}
+Using the bw.ppl bandwidth (0.79 km), the planar KDE shows the same corridors as the NKDE: a north–south corridor through Bangkok into Pathum Thani, an east–west corridor across southern Bangkok into Samut Prakan, and a south-western corridor towards Samut Sakhon, with the highest intensity in southern Bangkok near the Samut Prakan boundary. The location of these hotspots is stable across bandwidths of 0.5-2 km. However, planar KDE spreads intensity into areas without roads, such as fields and rivers, and cannot show which particular road carries the accidents. Comparing it with Section 6.3 shows that the network view gives the same broad picture but locates it on specific road segments.
 :::
 
-## 6.7 Spatio-temporal KDE
+## 6.5 Spatio-temporal KDE by month
 
 ```{r}
 acc_month <- acc_bmr_sf %>%
   select(Month_num)
 acc_month_ppp <- as.ppp(acc_month)
-acc_month_ppp <- rjitter(acc_month_ppp, retry = TRUE, nsim = 1, drop = TRUE)
 acc_month_owin <- acc_month_ppp[bmr_owin]
 summary(acc_month_owin)
 ```
@@ -454,7 +600,7 @@ summary(st_kde)
 ```{r}
 #| fig-width: 12
 #| fig-height: 10
-tims <- 1:12
+tims <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 par(mfcol = c(3, 4))
 for (i in tims) {
   plot(st_kde, i,
@@ -464,31 +610,37 @@ for (i in tims) {
 }
 ```
 
-:::
-The spatio-temporal KDE shows that the location of the main accident hotspot, in south-eastern Bangkok near the Samut Prakan boundary, is stable throughout 2022, while its intensity varies by month. Intensity is highest in December and relatively high in January, and lowest in February, March, May and June, consistent with the monthly counts in Section 6.1. From around August, a secondary concentration towards Samut Sakhon also becomes more visible. The automatically selected spatial bandwidth (about 4.9 km) is much larger than the one used in Section 6.6, so these maps show broad hotspots rather than individual road corridors. The temporal bandwidth is very small relative to the monthly time unit, so each panel mainly reflects that month's accidents with little smoothing between months. Monthly aggregation may also hide short peaks such as the Songkran week.
+::: {.callout-note title="Interpretation"}
+The spatio-temporal KDE shows that the location of the main accident hotspot, in south-eastern Bangkok near the Samut Prakan boundary, is stable throughout 2022, while its intensity varies by month. Intensity is highest in December and relatively high in January, and lowest in February, March, May and June, consistent with the monthly counts in Section 6.1. From around August, a secondary concentration towards Samut Sakhon also becomes more visible. The automatically selected spatial bandwidth (about 4.9 km) is large, so these maps show broad hotspots rather than individual road corridors. The temporal bandwidth is very small relative to the monthly time unit, so each panel mainly reflects that month's accidents. Monthly aggregation may also hide short peaks such as the Songkran week.
 :::
 
-## 6.8 Spatio-temporal KDE by day of year
+## 6.6 Spatio-temporal KDE by day of year
+
 ```{r}
-acc_bmr_sf <- acc_bmr_sf %>%
-  mutate(DayofYear = yday(incident_datetime))
-
 acc_yday_ppp <- acc_bmr_sf %>%
   select(DayofYear) %>%
   as.ppp()
-acc_yday_ppp <- rjitter(acc_yday_ppp, retry = TRUE, nsim = 1, drop = TRUE)
 acc_yday_owin <- acc_yday_ppp[bmr_owin]
 summary(acc_yday_owin)
 ```
+
+`BOOT.spattemp()` selects the spatial and temporal bandwidths by bootstrap.
+
 ```{r}
 set.seed(1234)
 BOOT.spattemp(acc_yday_owin)
 ```
 
 ```{r}
-kde_yday <- spattemp.density(acc_yday_owin, h = 3062, lambda = 76)
+# TODO: check h and lambda against the BOOT.spattemp() output above;
+# they were 3061.77 and 76.07 in the earlier run, and may change slightly
+kde_yday <- spattemp.density(acc_yday_owin,
+                             h = 3062,
+                             lambda = 76)
 summary(kde_yday)
 ```
+
+The four days shown are mid-February, mid-April, mid-July and mid-October. Days near the start and end of the year are avoided because estimates there are affected by the temporal boundary.
 
 ```{r}
 #| fig-width: 12
@@ -503,98 +655,113 @@ for (i in tims) {
 }
 ```
 
-:::
-Using day of year with bootstrap-selected bandwidths (h ≈ 3.1 km, lambda ≈ 76 days), the STKDE shows a stable core and a changing periphery. The main hotspot in south-eastern Bangkok near the Samut Prakan boundary, and the north–south corridor into Pathum Thani, persist throughout 2022. In contrast, the south-western corridor towards Samut Sakhon is faint in February and April but becomes increasingly prominent in July and October, when overall intensity is also higher, consistent with the monthly counts in Section 6.1. Compared with the monthly STKDE in Section 6.7, the smaller spatial bandwidth preserves more of the corridor structure. However, the 76-day temporal bandwidth pools accidents over roughly two to three months, so short-lived peaks such as the Songkran and New Year holidays are smoothed out; the daily time series in Section 6.1 remains the evidence for those peaks.
+::: {.callout-note title="Interpretation"}
+Using day of year with bootstrap-selected bandwidths (h ≈ 3.1 km, lambda ≈ 76 days), the STKDE shows a stable core and a changing periphery. The main hotspot in south-eastern Bangkok near the Samut Prakan boundary, and the north–south corridor into Pathum Thani, persist throughout 2022. In contrast, the south-western corridor towards Samut Sakhon is faint in February and April but becomes increasingly prominent in July and October, when overall intensity is also higher, consistent with the monthly counts in Section 6.1. However, the 76-day temporal bandwidth pools accidents over roughly two to three months, so short-lived peaks such as the Songkran and New Year holidays are smoothed out; the daily graphic in Section 6.1 remains the evidence for those peaks.
 :::
 
-# 7. Second-order Spatial Point Patterns Analysis
+# 7. Second-order Point Patterns Analysis
+
+## 7.1 Network K- and G-function analysis
+
+**Research question:** after accounting for the fact that accidents can only occur on the road network, are accidents clustered, regular or approximately random along the network?
+
+**Hypotheses:**
+
+H0: The observed accidents are uniformly distributed over the major road network in Bangkok.
+
+H1: The observed accidents are not uniformly distributed over the major road network in Bangkok.
+
+The CSR test is based on the binomial point process, which assumes accidents are randomly and independently distributed over the network. If H0 is rejected, accidents may be spatially interacting and dependent on each other, forming non-random patterns.
+
+The analysis is restricted to Bangkok, because simulating random points on the full BMR network is very slow. `kfunctions()` computes both the network K-function and the network G-function, and compares them with 50 simulations of random points on the network.
 
 ```{r}
-set.seed(1234)
+bkk_sf <- bmr_sf %>%
+  filter(shapeName == "Bangkok")
+
+network_bkk <- network %>%
+  filter(lengths(st_intersects(network, bkk_sf)) > 0)
+
+acc_bkk <- acc_net %>%
+  filter(lengths(st_intersects(acc_net, bkk_sf)) > 0)
+
+nrow(acc_bkk)
 ```
 
-## 7.1 Clark-Evans test
+```{r}
+kfun_acc <- kfunctions(network_bkk,
+                       acc_bkk,
+                       start = 0,
+                       end = 5000,
+                       step = 100,
+                       width = 200,
+                       nsim = 50,
+                       resolution = 50,
+                       verbose = FALSE,
+                       conf_int = 0.05)
+write_rds(kfun_acc, "data/rds/kfun_acc.rds")
+```
 
-H0: accidents are randomly distributed (CSR). H1: accidents are clustered.
+The blue line is the empirical network K-function and the grey envelope shows the 2.5%-97.5% interval of the 50 simulations. A blue line above the envelope indicates clustering at that distance, and below it indicates regularity.
+
+```{r}
+kfun_acc$plotk
+```
+
+The network G-function counts pairs of accidents within each 200 m ring, so it shows at which specific distances clustering or regularity occurs.
+
+```{r}
+kfun_acc$plotg
+```
+
+::: {.callout-note title="Interpretation"}
+<!-- TODO: write after running. State the distance ranges where the blue line is above, inside or below the envelope, for both the K- and G-functions. -->
+:::
+
+## 7.2 Planar tests against CSR, for comparison
+
+These tests use planar CSR as the null model: accidents are assumed equally likely anywhere in BMR, including where there are no roads. They are included to show how much the conclusion depends on the null model.
+
+H0: accidents are randomly distributed in BMR (CSR). H1: accidents are clustered.
+
+### 7.2.1 Clark-Evans test
 
 ```{r}
 clarkevans.test(accBMR_ppp.km,
                 correction = "none",
+                clipregion = NULL,
                 alternative = c("clustered"),
                 method = "MonteCarlo",
                 nsim = 99)
 ```
 
-## 7.2 G-function with CSR envelope
+### 7.2.2 G-function
 
 ```{r}
 G_acc.csr <- envelope(accBMR_ppp.km, Gest, nsim = 99)
-plot(G_acc.csr)
+plot(G_acc.csr, xlim = c(0, 2))
 ```
 
-## 7.3 L-function with CSR envelope
+### 7.2.3 L-function
 
-H0: accidents follow a homogeneous Poisson process (CSR). Assumption: the process is stationary, i.e. intensity is constant across BMR, which Section 6 already suggests is unrealistic. With 99 simulations and `rank = 1`, the global envelope corresponds to a significance level of 0.01.
+With 99 simulations and `rank = 1`, the global envelope corresponds to a significance level of 0.01.
 
 ```{r}
-r_km <- seq(0, 10, by = 0.1)
-
-L_acc.csr <- envelope(accBMR_ppp.km, Lest, nsim = 99,
-                      rank = 1, glocal = TRUE,
-                      r = r_km,
-                      correction = "border")
+L_acc.csr <- envelope(accBMR_ppp.km, Lest, nsim = 99, rank = 1, glocal = TRUE)
 plot(L_acc.csr, . - r ~ r, xlab = "d (km)", ylab = "L(d)-r")
-```
-
-## 7.4 Inhomogeneous L-function
-
-H0: accidents follow an inhomogeneous Poisson process whose intensity equals the KDE surface, i.e. no interaction beyond what uneven intensity explains. Assumptions: the KDE surface is a good estimate of the true intensity, and the process is second-order intensity-reweighted stationary. Because intensity and clustering cannot be fully separated from one pattern, the result depends on the bandwidth, which is tested in 7.5.
-
-```{r}
-lambda_acc <- density(accBMR_ppp.km, sigma = bw.ppl, positive = TRUE)
-```
-
-```{r}
-L_inhom.csr <- envelope(accBMR_ppp.km, Linhom, nsim = 39,
-                        rank = 1, glocal = TRUE,
-                        simulate = expression(rpoispp(lambda_acc)),
-                        lambda = lambda_acc,
-                        r = r_km,
-                        correction = "bord.modif")
-plot(L_inhom.csr, . - r ~ r, xlab = "d (km)", ylab = "L_inhom(d)-r")
-```
-
-## 7.5 Sensitivity of the inhomogeneous L-function to bandwidth
-
-```{r}
-lambda_acc2 <- density(accBMR_ppp.km, sigma = 2, positive = TRUE)
-```
-
-```{r}
-L_inhom2.csr <- envelope(accBMR_ppp.km, Linhom, nsim = 39,
-                         rank = 1, glocal = TRUE,
-                         simulate = expression(rpoispp(lambda_acc2)),
-                         lambda = lambda_acc2,
-                         r = r_km,
-                         correction = "bord.modif")
-plot(L_inhom2.csr, . - r ~ r, xlab = "d (km)", ylab = "L_inhom(d)-r",
-     main = "Inhomogeneous L, sigma = 2 km")
-
-plot(L_inhom2.csr, . - r ~ r, xlim = c(0, 2), xlab = "d (km)", ylab = "L_inhom(d)-r",
-     main = "Inhomogeneous L, sigma = 2 km (0-2 km)")
 ```
 
 ```{r}
 write_rds(L_acc.csr, "data/rds/L_acc_csr.rds")
-write_rds(L_inhom.csr, "data/rds/L_inhom_csr.rds")
-write_rds(L_inhom2.csr, "data/rds/L_inhom2_csr.rds")
 ```
 
-:::
-Against CSR, all tests indicate strong clustering: the Clark-Evans ratio is 0.30 (p = 0.01), and the G- and L-functions lie far above their envelopes across 0–10 km. However, CSR ignores the uneven intensity shown in Section 6. Against an inhomogeneous Poisson model based on the KDE surface, most of this clustering disappears. With the bw.ppl intensity (0.79 km), the observed curve stays close to the upper envelope at short distances and falls below it at 6–10 km, suggesting the fine-scale intensity absorbs much of the clustering. With a 2 km intensity, the observed curve exceeds the global envelope below about 0.3 km (α = 0.025), indicating significant short-range clustering beyond the corridor pattern, such as repeated accidents at the same locations. Most apparent clustering therefore reflects concentration along road corridors, with additional interaction limited to a few hundred metres and sensitive to bandwidth and the small number of simulations.
+::: {.callout-note title="Interpretation"}
+Against planar CSR, all tests indicate strong clustering: the Clark-Evans ratio is well below 1 (<!-- TODO: R value -->, p = 0.01), and the G- and L-functions lie far above their envelopes. The G-function also jumps at distance 0, because accidents sharing exact locations have a nearest-neighbour distance of zero. However, planar CSR assumes accidents can occur anywhere in BMR, whereas Sections 5.10 and 6.3 show they are confined to a small number of roads. Much of this apparent clustering therefore reflects the road network itself. This is why the network K-function in Section 7.1, which uses CSR on the network as the null model, is the main second-order test in this study.
 :::
 
-## 7.6 Spatio-temporal K-function (STIKhat)
+## 7.3 Spatio-temporal K-function
+
+**Research question:** do accidents that are close in space also tend to be close in time?
 
 ```{r}
 coords <- st_coordinates(acc_bmr_sf)
@@ -615,211 +782,148 @@ plotK(acc_stik)
 ```
 
 ::: {.callout-note title="Interpretation"}
-<!-- TODO: 7.6 interpretation -->
+<!-- TODO: write after running. High contour values at small spatial (u) and temporal (v) distances suggest clustering in both space and time. Note that STIKhat assumes constant intensity, so it cannot separate interaction from uneven intensity. -->
 :::
 
-# 8. Value-added Analysis: Network-constrained Point Patterns
+# 8. Value-added Analysis: Sensitivity of NKDE to Bandwidth
 
-Accidents can only occur on roads, so planar CSR assumes events could happen anywhere in the window, including rivers and fields. This section tests whether conclusions hold when the network is the study space.
+**Research question:** are the high-density road segments identified in Section 6.3 robust to the choice of NKDE bandwidth?
 
-## 8.1 Importing major roads within BMR
-
-Only roads intersecting BMR are read (`wkt_filter`), because the full Thailand layer is over 600 MB. The filter is in EPSG:4326 to match the OSM file.
+The NKDE is recomputed with bandwidths of 500 m and 2 km, using the same lixels, samples and settings as Section 6.3.
 
 ```{r}
-bmr_wkt <- bmr_union %>%
-  st_transform(crs = 4326) %>%
-  st_as_text()
+densities_500 <- nkde(network,
+                      events = acc_net,
+                      w = rep(1, nrow(acc_net)),
+                      samples = samples,
+                      kernel_name = "quartic",
+                      bw = 500,
+                      div = "bw",
+                      method = "simple",
+                      digits = 1,
+                      tol = 1,
+                      grid_shape = c(3, 3),
+                      max_depth = 8,
+                      agg = 5,
+                      sparse = TRUE,
+                      verbose = FALSE)
 
-major_roads <- c("motorway", "motorway_link", "trunk", "trunk_link",
-                 "primary", "primary_link", "secondary", "secondary_link",
-                 "tertiary", "tertiary_link")
+densities_2000 <- nkde(network,
+                       events = acc_net,
+                       w = rep(1, nrow(acc_net)),
+                       samples = samples,
+                       kernel_name = "quartic",
+                       bw = 2000,
+                       div = "bw",
+                       method = "simple",
+                       digits = 1,
+                       tol = 1,
+                       grid_shape = c(3, 3),
+                       max_depth = 8,
+                       agg = 5,
+                       sparse = TRUE,
+                       verbose = FALSE)
 
-roads_bmr <- st_read(dsn = "data/geospatial",
-                     layer = "gis_osm_roads_free_1",
-                     wkt_filter = bmr_wkt) %>%
-  filter(fclass %in% major_roads) %>%
-  select(osm_id, fclass, name) %>%
-  st_transform(crs = 32647) %>%
-  st_cast("LINESTRING")
-
-write_rds(roads_bmr, "data/rds/roads_bmr.rds")
+lixels$density_500 <- densities_500 * 1000
+lixels$density_2000 <- densities_2000 * 1000
 ```
 
 ```{r}
-table(st_geometry_type(roads_bmr))
-count(st_drop_geometry(roads_bmr), fclass, sort = TRUE)
+#| fig-width: 14
+#| fig-height: 6
+map_500 <- tm_shape(network) +
+  tm_lines(col = "grey80") +
+tm_shape(lixels %>% filter(density_500 > 0)) +
+  tm_lines(col = "density_500",
+           col.scale = tm_scale_intervals(style = "quantile",
+                                          values = "viridis"),
+           col.legend = tm_legend(title = "NKDE, bw = 500 m"),
+           lwd = 2)
+
+map_2000 <- tm_shape(network) +
+  tm_lines(col = "grey80") +
+tm_shape(lixels %>% filter(density_2000 > 0)) +
+  tm_lines(col = "density_2000",
+           col.scale = tm_scale_intervals(style = "quantile",
+                                          values = "viridis"),
+           col.legend = tm_legend(title = "NKDE, bw = 2 km"),
+           lwd = 2)
+
+tmap_arrange(map_500, map_2000, ncol = 2)
 ```
 
-## 8.2 Distance from accidents to the nearest major road
+The summary statistics show how the range of density values changes with the bandwidth.
 
 ```{r}
-nearest_id <- st_nearest_feature(acc_bmr_sf, roads_bmr)
-
-acc_bmr_sf <- acc_bmr_sf %>%
-  mutate(dist_road = as.numeric(st_distance(acc_bmr_sf,
-                                            roads_bmr[nearest_id, ],
-                                            by_element = TRUE)))
-summary(acc_bmr_sf$dist_road)
-```
-
-```{r}
-ggplot(acc_bmr_sf, aes(x = dist_road)) +
-  geom_histogram(bins = 50) +
-  geom_vline(xintercept = 100, linetype = "dashed", colour = "red") +
-  labs(x = "Distance to nearest major road (m)", y = "No. of accidents")
-```
-
-Accidents more than 100 m from a major road are excluded from the network analysis, as they are likely on minor roads or mislocated.
-
-```{r}
-acc_net_sf <- acc_bmr_sf %>%
-  filter(dist_road <= 100)
-nrow(acc_net_sf)
-```
-
-## 8.3 Network KDE
-
-```{r}
-lixels <- lixelize_lines(roads_bmr, 500, mindist = 250)
-samples <- lines_center(lixels)
-```
-
-```{r}
-densities <- nkde(roads_bmr,
-                  events = acc_net_sf,
-                  w = rep(1, nrow(acc_net_sf)),
-                  samples = samples,
-                  kernel_name = "quartic",
-                  bw = 1000,
-                  div = "bw",
-                  method = "simple",
-                  digits = 1,
-                  tol = 1,
-                  grid_shape = c(3, 3),
-                  max_depth = 8,
-                  agg = 5,
-                  sparse = TRUE,
-                  verbose = FALSE)
-
-lixels$density <- densities * 1000
-write_rds(lixels, "data/rds/lixels.rds")
-```
-
-```{r}
-lixels <- lixels %>%
-  arrange(density)
-
-tm_shape(bmr_sf) +
-  tm_polygons(fill = "grey95") +
-tm_shape(lixels) +
-  tm_lines(col = "density",
-           col.scale = tm_scale_continuous_sqrt(values = "viridis"),
-           col.legend = tm_legend(title = "Network KDE\n(relative density)"),
-           lwd = 1.5) +
-tm_title("Network KDE of road accidents, BMR 2022")
-```
-
-:::
-Network KDE (quartic kernel, 1 km bandwidth measured along the network) estimates accident density on each road segment rather than across continuous space. Almost all accidents (3,594 of 3,599) lie within 100 m of a major road, supporting a network-based approach. Density is concentrated on a small number of specific roads: a north–south corridor through eastern Bangkok into Pathum Thani, roads across southern Bangkok into Samut Prakan, where the highest values occur, and a south-western corridor towards Samut Sakhon. Most of the major road network, including much of inner Bangkok, shows near-zero density. This refines the planar KDE in Section 6.6: instead of broad hotspots, accidents concentrate on particular roads, which is more directly useful for targeting interventions. Values are relative densities rather than accidents per km, and reflect only accidents recorded by national road agencies, so low density on city streets may reflect missing records.
-:::
-
-## 8.4 Network K-function (Bangkok)
-
-The network K-function is restricted to Bangkok because computing it on the full BMR network is very slow; this is a computational decision and should be stated as a limitation.
-
-```{r}
-bkk_sf <- bmr_sf %>%
-  filter(shapeName == "Bangkok")
-
-roads_bkk <- roads_bmr %>%
-  st_filter(bkk_sf)
-acc_bkk <- acc_net_sf %>%
-  st_filter(bkk_sf)
-nrow(acc_bkk)
-```
-
-
-```{r}
-kfun_acc <- kfunctions(roads_bkk,
-                       acc_bkk,
-                       start = 0,
-                       end = 5000,
-                       step = 100,
-                       width = 200,
-                       nsim = 39,
-                       resolution = 50,
-                       verbose = FALSE,
-                       conf_int = 0.05)
-write_rds(kfun_acc, "data/rds/kfun_acc.rds")
-```
-
-```{r}
-kfun_acc$plotk
-kfun_acc$plotg
+summary(lixels$density_500)
+summary(lixels$density)
+summary(lixels$density_2000)
 ```
 
 ::: {.callout-note title="Interpretation"}
-<!-- TODO: 8.4 interpretation -->
+<!-- TODO: write after running. State whether the same corridors appear at all three bandwidths (compare with the 1 km map in Section 6.3), and how the maximum density changes. -->
 :::
 
 # 9. Integrated Findings and Discussion
 
-**What does the first-order analysis reveal?** 
-Recorded accidents are highly uneven in space and time. Intensity is concentrated along a few linear corridors rather than broad areas, with the strongest hotspot in southern Bangkok near the Samut Prakan boundary (Section 6.6). Network KDE confirms that density is confined to specific roads (Section 8.3). Temporally, counts are higher in the second half of 2022 (peaking in October), spike during the New Year and Songkran campaign periods, and are highest from late afternoon to evening (Section 6.1).
+**What does the first-order analysis reveal?** Recorded accidents are highly uneven in space and time. NKDE shows that density is confined to a small number of specific roads, particularly corridors across southern Bangkok into Samut Prakan, into Pathum Thani and towards Samut Sakhon (Section 6.3); planar KDE shows the same corridors (Section 6.4). Temporally, counts are higher in the second half of 2022 (peaking in October) and spike during the New Year and Songkran campaign periods (Section 6.1), while the hotspot locations are stable through the year (Sections 6.5 and 6.6).
 
-**What does the second-order analysis reveal?** 
-Against CSR, accidents are strongly clustered at all distances up to 10 km (Clark-Evans R = 0.30). Against an inhomogeneous Poisson model, most of this clustering disappears, but significant clustering remains below about 0.3 km when intensity is estimated with a 2 km bandwidth (Section 7.5).
+**What does the second-order analysis reveal?** Against planar CSR, accidents are strongly clustered at all distances tested (Section 7.2). Against CSR on the road network, <!-- TODO: summarise the network K- and G-function result from Section 7.1 -->.
 
-**How do they complement each other?** 
-The first-order results explain most of the apparent clustering: accidents cluster mainly because they are concentrated on a few corridors. The second-order results add that, within those corridors, accidents also recur within a few hundred metres, consistent with the 520 accidents sharing exact locations (Section 5.9).
+**How do they complement each other?** The first-order results show that accidents are concentrated on a few roads, which explains much of the strong planar clustering. The network second-order test asks whether, along those roads, accidents are closer together than random placement on the network would produce. <!-- TODO: one sentence linking the network K result to the repeated locations in Section 5.9. -->
 
-**Are the findings consistent across analytical views?** 
-The location of the main hotspot and corridors is robust across bandwidths (0.5–5 km), spatio-temporal KDE and network KDE. The strength of clustering is not: it depends on the null model and the bandwidth used to estimate intensity. [8.4: state whether the network K-function supports or contradicts the planar results.]
+**Are the findings consistent across analytical views?** The location of the main corridors is consistent across NKDE, planar KDE at 0.5-2 km bandwidths, and spatio-temporal KDE. The strength of clustering is not: it depends strongly on whether the null model is planar CSR or CSR on the network. <!-- TODO: add the NKDE bandwidth sensitivity result from Section 8. -->
 
-**What assumptions or limitations matter?** 
-The most important are the observation process (only national road agencies' records), the absence of traffic-volume data, and sensitivity to bandwidth; these are detailed in Section 11.
+**What assumptions or limitations matter?** The most important are the observation process (only national road agencies' records), the absence of traffic-volume data, the restriction of the network K-function to Bangkok, and sensitivity to bandwidth; these are detailed in Section 11.
 
-**Are there alternative explanations?** 
-Concentrations along corridors may reflect higher traffic volumes rather than higher risk per vehicle. Repeated locations may partly reflect recording practices, such as locating accidents at fixed reference points, rather than true hotspots. Low intensity in inner Bangkok may reflect missing records from city-managed streets rather than safer roads.
+**Are there alternative explanations?** Concentrations along corridors may reflect higher traffic volumes rather than higher risk per vehicle; network CSR assumes equal exposure on every road, which is unlikely. Repeated locations may partly reflect recording practices, such as locating accidents at fixed reference points, rather than true hotspots. Low intensity in inner Bangkok may reflect missing records from city-managed streets rather than safer roads.
 
 # 10. Public-safety Planning and Management Implications
 
 ## Supported directly by the analysis
 
-**Prioritising corridors rather than areas.** Network KDE shows that recorded accidents are concentrated on a small number of specific roads, particularly the corridors across southern Bangkok into Samut Prakan, the north–south corridor into Pathum Thani, and the south-western corridor towards Samut Sakhon. Road-safety audits, enforcement and engineering reviews can therefore be targeted at identified road segments rather than spread evenly across provinces.
+**Prioritising road segments rather than areas.** NKDE shows that recorded accidents are concentrated on a small number of specific roads, particularly the corridors across southern Bangkok into Samut Prakan, the north–south corridor into Pathum Thani, and the south-western corridor towards Samut Sakhon. Road-safety audits, enforcement and engineering reviews can therefore be targeted at identified road segments rather than spread evenly across provinces.
 
-**Focusing on repeated locations.** The significant short-range clustering below about 0.3 km, together with 520 accidents sharing exact locations, indicates that some sites experience repeated accidents. These locations are natural candidates for site-level investigation, such as junction design, signage and lighting.
+**Focusing on repeated locations.** Some accidents share exact locations (Section 5.9). These locations are natural candidates for site-level investigation, such as junction design, signage and lighting.
 
-**Timing interventions.** Accidents are more frequent in the second half of the year, during the New Year and Songkran periods, and from late afternoon to evening, especially on Fridays. Enforcement and campaign resources can be scheduled to match these periods.
+**Timing interventions.** Accidents are more frequent in the second half of the year and during the New Year and Songkran periods. Enforcement and campaign resources can be scheduled to match these periods.
 
-**Monitoring emerging corridors.** The south-western corridor towards Samut Sakhon becomes more prominent from mid-year onwards (Section 6.8), suggesting it should be monitored over future years to see whether this pattern persists.
+**Monitoring emerging corridors.** The south-western corridor towards Samut Sakhon becomes more prominent from mid-year onwards (Section 6.6), suggesting it should be monitored over future years to see whether this pattern persists.
 
-**Emergency response.** Because accidents are concentrated along identifiable corridors, the locations of ambulance and rescue units can be evaluated against these corridors, for example by checking response distances along the network.
+**Emergency response.** Because accidents are concentrated along identifiable road segments, the locations of ambulance and rescue units can be evaluated against these segments, for example by checking response distances along the network.
 
 ## Requiring additional information
 
-**Assessing risk rather than counts.** 
-The analysis identifies where recorded accidents concentrate, not where roads are most dangerous. Traffic volume data would be needed to convert counts into accident rates per vehicle-kilometre before concluding that a corridor is high-risk.
+**Assessing risk rather than counts.** The analysis identifies where recorded accidents concentrate, not where roads are most dangerous. Traffic volume data would be needed to convert counts into accident rates per vehicle-kilometre before concluding that a road segment is high-risk.
 
-**Explaining causes.** 
-The analysis does not show why accidents concentrate on these roads or at these times. Attributes such as presumed cause, vehicle type and road design, together with field inspections, would be needed before designing specific engineering or behavioural interventions.
+**Explaining causes.** The analysis does not show why accidents concentrate on these roads or at these times. Attributes such as presumed cause, vehicle type and road design, together with field inspections, would be needed before designing specific engineering or behavioural interventions.
 
-**Covering city streets.** 
-All records come from national road agencies. Integrating data from the Bangkok Metropolitan Administration would be necessary before drawing conclusions about inner Bangkok, where low intensity may reflect missing records.
+**Covering city streets.** All records come from national road agencies. Integrating data from the Bangkok Metropolitan Administration would be necessary before drawing conclusions about inner Bangkok, where low intensity may reflect missing records.
 
-**Evaluating interventions.** 
-Multi-year data (for example, 2019–2022) would be needed to confirm whether the identified corridors and seasonal patterns are stable, and to evaluate whether past campaigns have had any effect.
+**Evaluating interventions.** Multi-year data (for example, 2019–2022) would be needed to confirm whether the identified corridors and seasonal patterns are stable, and to evaluate whether past campaigns have had any effect.
 
 # 11. Limitations
 
 -   **Observation process.** All records come from national road agencies (Department of Highways 80.1%, Expressway Authority 13.1%, Department of Rural Roads 6.8%). Accidents on city-managed streets are likely missing, so patterns describe recorded accidents on these road types only.
--   **No exposure data.** Without traffic volumes, concentrations cannot be interpreted as higher risk.
--   **Location quality.** 189 records lacked coordinates, and 520 accidents shared exact locations, possibly reflecting fixed reference points. Jittering removes duplicates but introduces small artificial displacements.
+-   **No exposure data.** Without traffic volumes, concentrations cannot be interpreted as higher risk, and network CSR assumes equal exposure on all roads.
+-   **Location quality.** 189 records lacked coordinates, and some accidents share exact locations, possibly reflecting fixed reference points. These were kept, which inflates the planar G-function at distance zero.
 -   **Single year.** Only 2022 is analysed, so patterns may not be stable across years.
--   **Bandwidth sensitivity.** KDE maps and especially the inhomogeneous L-function depend on bandwidth; results were tested at several bandwidths but not all choices can be exhausted.
--   **Intensity estimated from the same data.** The inhomogeneous null model uses a KDE of the same accidents, which can absorb genuine clustering, and the two border-correction estimators gave different results.
--   **Limited simulations.** The inhomogeneous envelopes use 39 simulations, giving jagged envelopes and limited precision.
+-   **Bandwidth sensitivity.** Planar KDE and NKDE depend on bandwidth; results were compared at several bandwidths, but not all choices can be exhausted.
+-   **Limited simulations and extent.** The network K-function uses 50 simulations and covers Bangkok only, for computational reasons.
 -   **Temporal smoothing.** The day-of-year STKDE uses a 76-day temporal bandwidth, which smooths out short holiday peaks; the space–time K-function assumes constant intensity.
--   **Network data.** The OSM road network is a 2026 extract, whereas accidents are from 2022, and only major road classes were included. The network K-function was restricted to Bangkok for computational reasons, and network KDE values are relative densities.
+-   **Network data.** The OSM road network is a 2026 extract, whereas accidents are from 2022, and only major road classes were included. Roads built after 2022 appear in the network without any accidents.
 -   **Study window.** BMR is defined by six provincial boundaries; a different definition of the metropolitan area could change edge effects and intensity estimates.
+
+# 12. References
+
+-   Asian Transport Observatory. (2025). *Thailand Road Safety Profile 2025*.
+-   Baddeley, A., Rubak, E., & Turner, R. (2015). *Spatial Point Patterns: Methodology and Applications with R*. Chapman and Hall/CRC.
+-   Davies, T. M., Marshall, J. C., & Hazelton, M. L. (2018). Tutorial on kernel estimation of continuous spatial and spatiotemporal relative risk. *Statistics in Medicine*, 37(7), 1191-1221.
+-   Gabriel, E., Rowlingson, B. S., & Diggle, P. J. (2013). stpp: An R package for plotting, simulating and analyzing spatio-temporal point patterns. *Journal of Statistical Software*, 53(2), 1-29.
+-   Gelb, J. (2021). spNetwork: A package for network kernel density estimation. *The R Journal*, 13(2), 102-116.
+-   Kam, T. S. *R for Geospatial Data Science and Analytics*, Chapter 7: Network Constrained Spatial Point Patterns Analysis. https://r4gdsa.netlify.app/chap07
+-   Okabe, A., & Sugihara, K. (2012). *Spatial Analysis along Networks: Statistical and Computational Methods*. Wiley.
+-   OpenStreetMap contributors. Thailand extract via Geofabrik, 21 September 2026.
+-   Runfola, D. et al. (2020). geoBoundaries: A global database of political administrative boundaries. *PLOS ONE*, 15(4), e0231866.
+-   Thaweewat R. Thailand Road Accident \[2019-2022\]. Kaggle.
+-   World Health Organization. (2023). *Global status report on road safety 2023*. Geneva: WHO.
