@@ -36,6 +36,8 @@ website:
         menu:
           - href: Take-home_Ex/Take-home_Ex01/Take-home_Ex01.qmd
             text: "Take-home Ex01"
+          - href: Take-home_Ex/Take-home_Ex01/Take-home_Ex01_summary.qmd
+            text: "Take-home Ex01: Executive Summary"
     right:
       - href: about.qmd
         text: About
