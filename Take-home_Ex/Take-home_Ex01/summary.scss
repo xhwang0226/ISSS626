@@ -1,0 +1,218 @@
+/*-- scss:defaults --*/
+
+// Colours sampled from the ISSS626 website (Quartz theme)
+$site-blue: #5eb3dd;
+$site-purple: #5e65ad;
+$site-pink: #c7407c;
+$site-accent: #d64482;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+$font-family-sans-serif: "Inter", "Helvetica Neue", Arial, sans-serif;
+$presentation-heading-font: "Inter", "Helvetica Neue", Arial, sans-serif;
+
+$body-bg: $site-purple;
+$body-color: #ffffff;
+$link-color: #ffffff;
+$presentation-heading-color: #ffffff;
+$presentation-heading-font-weight: 700;
+$presentation-heading-text-transform: none;
+$presentation-font-size-root: 30px;
+$presentation-h2-font-size: 1.45em;
+
+/*-- scss:rules --*/
+
+// Gradient background, as on the website
+.reveal-viewport {
+  background: linear-gradient(90deg, $site-blue 0%, $site-purple 52%, $site-pink 100%) !important;
+}
+
+.reveal {
+  line-height: 1.35;
+}
+
+// Slide titles with a short pink bar underneath
+.reveal h2 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6em;
+}
+
+.reveal h2::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 5px;
+  margin-top: 0.3em;
+  border-radius: 3px;
+  background: $site-accent;
+}
+
+// Title slide
+#title-slide .title {
+  font-size: 2.1em;
+  font-weight: 800;
+  line-height: 1.1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+#title-slide .subtitle {
+  display: inline-block;
+  margin-top: 0.8em;
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+  background: $site-accent;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+#title-slide .quarto-title-author-name,
+#title-slide .date {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8em;
+}
+
+// Glass cards for text blocks
+.reveal .card {
+  background: rgba(20, 20, 60, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 0.7em 0.9em;
+  margin-bottom: 0.5em;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.reveal .card p:first-child {
+  margin-top: 0;
+}
+
+.reveal .card ul,
+.reveal .card ol {
+  margin-left: 1em;
+}
+
+// Key message box with a pink edge
+.reveal .takeaway {
+  background: rgba(255, 255, 255, 0.16);
+  border-left: 6px solid $site-accent;
+  border-radius: 10px;
+  padding: 0.5em 0.9em;
+  margin-top: 0.4em;
+  font-weight: 500;
+}
+
+// Small label above a block of text
+.reveal .eyebrow {
+  display: inline-block;
+  padding: 0.1em 0.7em;
+  margin-bottom: 0.4em;
+  border-radius: 999px;
+  background: $site-accent;
+  font-size: 0.6em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+// Headline numbers
+.reveal .stats {
+  display: flex;
+  gap: 0.6em;
+  margin: 0.3em 0 0.6em 0;
+}
+
+.reveal .stat {
+  flex: 1;
+  background: rgba(20, 20, 60, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 0.5em 0.7em;
+  text-align: left;
+}
+
+.reveal .stat .num {
+  display: block;
+  font-size: 1.7em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.reveal .stat .label {
+  display: block;
+  font-size: 0.6em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+// Contents slide as a two-column grid of cards
+.reveal .toc-grid ol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35em 0.8em;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: toc;
+}
+
+.reveal .toc-grid li {
+  counter-increment: toc;
+  background: rgba(20, 20, 60, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 0.35em 0.7em;
+  font-size: 0.8em;
+}
+
+.reveal .toc-grid li::before {
+  content: counter(toc, decimal-leading-zero);
+  color: $site-accent;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 0 0.35em;
+  margin-right: 0.6em;
+  font-weight: 800;
+}
+
+// Figures sit on white rounded panels so maps and charts stay readable
+.reveal .cell-output-display img {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+// Tables on the gradient
+.reveal table {
+  font-size: 0.72em;
+  border-collapse: collapse;
+}
+
+.reveal table th {
+  color: #ffffff;
+  font-weight: 700;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.7) !important;
+}
+
+.reveal table td {
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+.reveal table tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.reveal strong {
+  font-weight: 700;
+}
+
+// Footer, slide number and progress bar
+.reveal .footer,
+.reveal .slide-number {
+  color: rgba(255, 255, 255, 0.85) !important;
+  background: transparent !important;
+}
+
+.reveal .progress {
+  color: $site-accent;
+}
