@@ -11,7 +11,7 @@ format:
     slide-number: true
     transition: fade
     scrollable: true
-    footer: "Road traffic accidents in BMR, 2022"
+    footer: "Road traffic accidents in BMR, 2022 · [← Back to Technical Report](Take-home_Ex01.html)"
 execute:
   echo: false
   eval: true
