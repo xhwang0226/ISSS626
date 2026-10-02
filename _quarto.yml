@@ -28,6 +28,8 @@ website:
             text: "Hands-on Ex07"
           - href: Hands-on/Hands-on_Ex08/Hands-on_Ex08.qmd
             text: "Hands-on Ex08"
+          - href: Hands-on/Hands-on_Ex09/Hands-on_Ex09.qmd
+            text: "Hands-on Ex09"
       - text: "In-class Exercises"
         menu:
           - href: In-class_Ex/In-class_Ex04/In-class_Ex04.qmd
