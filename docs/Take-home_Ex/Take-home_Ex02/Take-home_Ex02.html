@@ -521,9 +521,10 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mmr_ts <span class="ot">&lt;-</span> mmr_ts <span class="sc">%&gt;%</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_make_valid</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_cast</span>(<span class="st">"MULTIPOLYGON"</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">st_geometry_type</span>(mmr_ts))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_cast</span>(<span class="st">"MULTIPOLYGON"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(TS_PCODE)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">st_geometry_type</span>(mmr_ts))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
           GEOMETRY              POINT         LINESTRING            POLYGON 
@@ -543,6 +544,7 @@ Geodetic CRS:  WGS 84</code></pre>
 </div>
 </div>
 <p><code>st_make_valid()</code> can return a mix of POLYGON and MULTIPOLYGON features, which sf stores as a generic GEOMETRY column. <code>st_cast()</code> converts every township to MULTIPOLYGON, because sfdep functions such as <code>st_knn()</code> only recognise POLYGON or MULTIPOLYGON columns.</p>
+<p><code>arrange()</code> sorts the townships by <code>TS_PCODE</code>. The MIMU file is not stored in code order, and <code>emerging_hotspot_analysis()</code> requires the township layer to be sorted by its location column (see Section 8.5).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(mmr_ts<span class="sc">$</span>ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1267,7 +1269,9 @@ Indian Ocean      Myanmar
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words): describe the overall trend, when each event type peaks, and how the share of explosions/remote violence (including air and drone strikes) changes compared with battles.</em></p>
+<p>Armed conflict rose sharply after the February 2021 coup. All three event types were below 200 in 2021 Q1, but by 2021 Q4 explosions/remote violence had reached about 1,280 events per quarter and battles about 940, as armed resistance spread. Both stayed at roughly 1,000 to 1,250 per quarter through 2022 and the first half of 2023.</p>
+<p>The largest peak came in 2023 Q4, when explosions/remote violence reached about 1,920 events and battles about 1,650, coinciding with the “Operation 1027” offensive launched in late October 2023. After this peak, battles fell back to about 1,070 to 1,150 per quarter, while explosions/remote violence stayed higher, at about 1,370 to 1,430 per quarter until 2025 Q2. Since late 2023, explosions/remote violence have outnumbered battles in every quarter, consistent with growing reliance on air strikes, drone strikes and artillery rather than ground fighting.</p>
+<p>Violence against civilians peaked early, at about 780 events in 2021 Q4, and has since declined slowly to about 400 to 500 per quarter. It remains a steady part of the conflict rather than following the battle cycle.</p>
 </div>
 </div>
 </section>
@@ -1297,7 +1301,7 @@ Indian Ocean      Myanmar
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering: the distribution is strongly right-skewed (a few townships have very high counts and several have none). This is why the LISA quadrants are labelled using the median (Section 7.3).</em></p>
+<p>The distribution is strongly right-skewed. Half of the townships recorded 79 events or fewer over the study period, but the mean is 163 and the most affected township recorded 1,039. Eight townships recorded no armed conflict events at all. Because a few extreme townships pull the mean upwards, the LISA quadrants in Section 7.3 are labelled relative to the median.</p>
 </div>
 </div>
 </section>
@@ -1350,7 +1354,9 @@ Indian Ocean      Myanmar
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words): name the states/regions with the most events (e.g.&nbsp;Sagaing, Magway, Mandalay, Kayin, Kachin), compare events with fatalities, and note how the per-capita map changes the picture for sparsely populated townships.</em></p>
+<p>Armed conflict is concentrated in two broad belts. The first is the central Dry Zone, covering southern Sagaing, northern Magway and western Mandalay, which contains the darkest cluster of townships on the events map. The second runs along the south-east, from Bago (East) and Kayin through Mon to Tanintharyi. Smaller concentrations appear in northern Shan, central Kachin and northern Rakhine. Most of Shan (East and South), the Ayeyarwady delta and Yangon recorded relatively few events.</p>
+<p>Fatalities largely follow the same pattern, but are even more concentrated in the Dry Zone, along the Kayin border and in northern Rakhine, where fighting has been especially deadly.</p>
+<p>The per-capita map changes the picture. Densely populated Dry Zone townships become less prominent, while sparsely populated townships in north-eastern Kachin, the Kayin and Kayah hills and Tanintharyi stand out. Their populations face a higher exposure to conflict than raw counts suggest. Because the 2023 population estimates do not reflect later displacement, the rates should be read as indicative.</p>
 </div>
 </div>
 </section>
@@ -1391,7 +1397,10 @@ Indian Ocean      Myanmar
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words): compare where each type concentrates, e.g.&nbsp;whether violence against civilians follows the same areas as battles.</em></p>
+<p>The three event types share the same core in the central Dry Zone, but differ elsewhere.</p>
+<p>Battles are the most widespread type. Besides the Dry Zone, they are frequent along the whole south-eastern belt (Kayin, Mon and Tanintharyi), in northern Shan, Kachin and on the Rakhine coast, i.e.&nbsp;wherever armed groups confront the military on the ground.</p>
+<p>Explosions/remote violence are more concentrated. The highest counts are in the Dry Zone (Sagaing and Magway) and in Kayin and Bago (East), with fewer events in the north and north-east. This fits a pattern in which air strikes, shelling and drones target areas where resistance groups hold territory.</p>
+<p>Violence against civilians is the most concentrated of the three. It is heavily focused on Sagaing and Mandalay, with further pockets in Tanintharyi and central Kachin. Its overlap with the Dry Zone battle zone suggests that civilians are most at risk in contested areas where the military conducts operations against resistance-held villages.</p>
 </div>
 </div>
 </section>
@@ -1435,7 +1444,9 @@ Indian Ocean      Myanmar
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words): describe how the conflict spreads or shifts between years. Note that 2025 covers only nine months, and that fixed breaks are used so that the years are comparable.</em></p>
+<p>Fixed class breaks are used for all years, so darker colours mean more events in absolute terms. Note that 2025 covers only nine months.</p>
+<p>In 2021, conflict was widespread but mostly at low to moderate levels, with stronger pockets in northern Shan, Kachin and Kayin. In 2022, it intensified sharply in the Dry Zone (Sagaing, Magway and Mandalay) and along the south-east (Kayin and Tanintharyi), which became the two main conflict belts. In 2023, these belts remained intense and northern Shan became one of the darkest areas, reflecting the late-2023 offensive there. In 2024, conflict spread along the Rakhine coast and intensified further in southern Tanintharyi, while the Dry Zone remained active. In 2025, the Dry Zone and the south-east remained the main areas of fighting, while northern Shan and Rakhine became less intense.</p>
+<p>Overall, conflict did not simply move from one region to another. The Dry Zone stayed active throughout, while new fronts opened and closed around it in Shan, Rakhine and Tanintharyi.</p>
 </div>
 </div>
 </section>
@@ -1456,7 +1467,7 @@ Indian Ocean      Myanmar
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>mmr_conflict<span class="sc">$</span>TS[card_queen <span class="sc">==</span> <span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Munaung"   "Chaungzon" "Cocokyun" </code></pre>
+<pre><code>[1] "Chaungzon" "Munaung"   "Cocokyun" </code></pre>
 </div>
 </div>
 <p>The townships listed above have <strong>no</strong> contiguity neighbours. They are islands: Munaung (Rakhine), Chaungzon (Mon) and Cocokyun (the Coco Islands, Yangon). Local statistics cannot be computed for townships without neighbours, and these islands would have to be dropped. k-nearest neighbours instead give every township the same number of neighbours. k = 5 is used, because it is close to the average number of Queen neighbours shown above, so the neighbourhood size stays similar to contiguity for mainland townships.</p>
@@ -1513,7 +1524,7 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering: report Moran’s I and its p-value. A positive and significant I means townships with many events tend to be next to townships with many events, which justifies looking for local clusters.</em></p>
+<p>Moran’s I is 0.45, and the observed value ranks highest among the 1,000 values (999 permutations plus the observed one), giving a p-value below 0.001. We therefore reject the null hypothesis of spatial randomness. Armed conflict is positively spatially autocorrelated: townships with many events tend to be next to townships with many events, and calm townships next to calm ones. This justifies looking for where these clusters are, using local measures.</p>
 </div>
 </div>
 </section>
@@ -1587,15 +1598,15 @@ alternative hypothesis: two.sided</code></pre>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Insignificant</td>
-<td style="text-align: right;">229</td>
+<td style="text-align: right;">233</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Low-Low</td>
-<td style="text-align: right;">68</td>
+<td style="text-align: right;">65</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Low-High</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">High-High</td>
@@ -1625,7 +1636,7 @@ alternative hypothesis: two.sided</code></pre>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Ayeyarwady</td>
-<td style="text-align: right;">18</td>
+<td style="text-align: right;">16</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0</td>
 </tr>
@@ -1637,20 +1648,8 @@ alternative hypothesis: two.sided</code></pre>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Kachin</td>
-<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Kayah</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Kayin</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">0</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
@@ -1662,7 +1661,7 @@ alternative hypothesis: two.sided</code></pre>
 <tr class="odd">
 <td style="text-align: left;">Mandalay</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
@@ -1674,7 +1673,7 @@ alternative hypothesis: two.sided</code></pre>
 <tr class="odd">
 <td style="text-align: left;">Sagaing</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">15</td>
+<td style="text-align: right;">16</td>
 <td style="text-align: right;">0</td>
 </tr>
 <tr class="even">
@@ -1698,7 +1697,7 @@ alternative hypothesis: two.sided</code></pre>
 <tr class="odd">
 <td style="text-align: left;">Tanintharyi</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">0</td>
 </tr>
 <tr class="even">
@@ -1721,12 +1720,10 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words):</em></p>
-<ul>
-<li><em>High-High: where are the core conflict clusters (which states/regions)?</em></li>
-<li><em>Low-Low: which areas are consistently calm (e.g.&nbsp;Ayeyarwady, Yangon outskirts, Shan East)?</em></li>
-<li><em>High-Low / Low-High outliers: name a few and suggest why (e.g.&nbsp;a township that is calm but surrounded by fighting).</em></li>
-</ul>
+<p>Of the 330 townships, 97 show a significant local pattern (p &lt; 0.05).</p>
+<p><strong>High-High clusters</strong> (30 townships) form one large, contiguous core in the central Dry Zone, mostly in Sagaing, with neighbouring townships in Mandalay and Magway. Smaller High-High clusters appear in Tanintharyi, central Kachin and Kayah. These are areas where heavy conflict is not isolated but shared by whole groups of neighbouring townships.</p>
+<p><strong>Low-Low clusters</strong> (65 townships) cover the Ayeyarwady delta, Yangon, Nay Pyi Taw, eastern and southern Shan, and the far north of Kachin. Yangon and Nay Pyi Taw are under firm military control, while much of eastern Shan is held by armed groups with long-standing ceasefires.</p>
+<p><strong>Outliers</strong> are rare. The 2 Low-High townships are relatively calm townships surrounded by active conflict, in Kachin, Mandalay and Kayin; they may be towns under firm control within contested areas. No High-Low outlier was found: heavy conflict in this period never occurred in isolation, but always spilled over to neighbouring townships.</p>
 </div>
 </div>
 </section>
@@ -1798,7 +1795,10 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>✏️ <em>To write after rendering (≤ 200 words): compare the hot spots with the High-High clusters of Section 7.3. Where do they agree, and where does Gi* find hot spots that LISA does not?</em></p>
+<p>Gi* identifies 29 hot spots and 66 cold spots (p &lt; 0.05).</p>
+<p>The results largely agree with the LISA clusters. The strongest hot spots, with Gi* values up to about 5, form the same contiguous core in the Dry Zone of Sagaing, Magway and Mandalay. Smaller hot spots in central Kachin, Tanintharyi and near the Kayah/Bago (East) border also match High-High clusters. The cold spots match the Low-Low clusters in the Ayeyarwady delta, eastern Shan, the far north of Kachin and around Nay Pyi Taw.</p>
+<p>The main difference is along the Kayin border with Thailand, where Gi* finds a hot spot that LISA does not classify as High-High. Gi* includes the township itself and weights closer neighbours more heavily, so a very active township (such as one on the Myawaddy front) can form a hot spot even if not all of its neighbours are highly active. LISA, by contrast, requires both the township and the average of its neighbours to be high.</p>
+<p>Together, the two methods show that the Dry Zone is the clearest and most robust conflict cluster in Myanmar.</p>
 </div>
 </div>
 <div class="cell">
@@ -1905,7 +1905,7 @@ alternative hypothesis: two.sided</code></pre>
 <span id="cb85-11"><a href="#cb85-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplotly</span>(p)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="plotly html-widget html-fill-item" id="htmlwidget-5e61c12e40e1d378cc3b" style="width:100%;height:464px;"></div>
-<script type="application/json" data-for="htmlwidget-5e61c12e40e1d378cc3b">{"x":{"data":[{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"y":[-0.059396472797069048,0.51583580227116266,2.9757141539107357,7.0460354410490798,5.567608386009943,7.3579310250466765,7.3650455416684997,8.1484069329743924,6.1327552012146569,4.6412700630917199,5.4446135744776312,3.3737724064115171,4.6641193218133132,4.6420746238527268,2.8305138115258144,2.129394910204657,4.0975092798847177,0.91307476395427234,1.7474463268158085],"text":["quarter_id:  1<br />gi_star: -0.05939647","quarter_id:  2<br />gi_star:  0.51583580","quarter_id:  3<br />gi_star:  2.97571415","quarter_id:  4<br />gi_star:  7.04603544","quarter_id:  5<br />gi_star:  5.56760839","quarter_id:  6<br />gi_star:  7.35793103","quarter_id:  7<br />gi_star:  7.36504554","quarter_id:  8<br />gi_star:  8.14840693","quarter_id:  9<br />gi_star:  6.13275520","quarter_id: 10<br />gi_star:  4.64127006","quarter_id: 11<br />gi_star:  5.44461357","quarter_id: 12<br />gi_star:  3.37377241","quarter_id: 13<br />gi_star:  4.66411932","quarter_id: 14<br />gi_star:  4.64207462","quarter_id: 15<br />gi_star:  2.83051381","quarter_id: 16<br />gi_star:  2.12939491","quarter_id: 17<br />gi_star:  4.09750928","quarter_id: 18<br />gi_star:  0.91307476","quarter_id: 19<br />gi_star:  1.74744633"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,0,0,1)","dash":"solid"},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":40.840182648401829,"r":7.3059360730593621,"b":33.311572198566374,"l":31.415525114155255},"plot_bgcolor":"rgba(255,255,255,1)","paper_bgcolor":"rgba(255,255,255,1)","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Gi* of Monywa by quarter","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.099999999999999978,19.899999999999999],"tickmode":"array","ticktext":["2021 Q1","2021 Q2","2021 Q3","2021 Q4","2022 Q1","2022 Q2","2022 Q3","2022 Q4","2023 Q1","2023 Q2","2023 Q3","2023 Q4","2024 Q1","2024 Q2","2024 Q3","2024 Q4","2025 Q1","2025 Q2","2025 Q3"],"tickvals":[1,2,3,4,5,6.0000000000000009,7,8,9,10,11,12,13,14,14.999999999999998,16,17,18,19],"categoryorder":"array","categoryarray":["2021 Q1","2021 Q2","2021 Q3","2021 Q4","2022 Q1","2022 Q2","2022 Q3","2022 Q4","2023 Q1","2023 Q2","2023 Q3","2023 Q4","2024 Q1","2024 Q2","2024 Q3","2024 Q4","2025 Q1","2025 Q2","2025 Q3"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-45,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.46978664308564211,8.5587971032629646],"tickmode":"array","ticktext":["0","2","4","6","8"],"tickvals":[0,2,4,6,8],"categoryorder":"array","categoryarray":["0","2","4","6","8"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"x","title":{"text":"Gi*","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":"rgba(255,255,255,1)","line":{"color":"rgba(179,179,179,1)","width":0.66417600664176002,"linetype":"solid"},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":"rgba(255,255,255,1)","bordercolor":"transparent","borderwidth":1.8897637795275593,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"11ed548a2170d":{"x":{},"y":{},"type":"scatter"}},"cur_data":"11ed548a2170d","visdat":{"11ed548a2170d":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-5e61c12e40e1d378cc3b">{"x":{"data":[{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"y":[-0.059396472797069021,0.51583580227116188,2.9757141539107348,7.046035441049078,5.5676083860099448,7.3579310250466907,7.365045541668489,8.1484069329743765,6.1327552012146569,4.6412700630917199,5.4446135744776303,3.3737724064115189,4.6641193218133115,4.6420746238527277,2.8305138115258135,2.1293949102046552,4.0975092798847177,0.91307476395427234,1.7474463268158094],"text":["quarter_id:  1<br />gi_star: -0.05939647","quarter_id:  2<br />gi_star:  0.51583580","quarter_id:  3<br />gi_star:  2.97571415","quarter_id:  4<br />gi_star:  7.04603544","quarter_id:  5<br />gi_star:  5.56760839","quarter_id:  6<br />gi_star:  7.35793103","quarter_id:  7<br />gi_star:  7.36504554","quarter_id:  8<br />gi_star:  8.14840693","quarter_id:  9<br />gi_star:  6.13275520","quarter_id: 10<br />gi_star:  4.64127006","quarter_id: 11<br />gi_star:  5.44461357","quarter_id: 12<br />gi_star:  3.37377241","quarter_id: 13<br />gi_star:  4.66411932","quarter_id: 14<br />gi_star:  4.64207462","quarter_id: 15<br />gi_star:  2.83051381","quarter_id: 16<br />gi_star:  2.12939491","quarter_id: 17<br />gi_star:  4.09750928","quarter_id: 18<br />gi_star:  0.91307476","quarter_id: 19<br />gi_star:  1.74744633"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,0,0,1)","dash":"solid"},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":40.840182648401829,"r":7.3059360730593621,"b":33.311572198566374,"l":31.415525114155255},"plot_bgcolor":"rgba(255,255,255,1)","paper_bgcolor":"rgba(255,255,255,1)","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Gi* of Monywa by quarter","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.099999999999999978,19.899999999999999],"tickmode":"array","ticktext":["2021 Q1","2021 Q2","2021 Q3","2021 Q4","2022 Q1","2022 Q2","2022 Q3","2022 Q4","2023 Q1","2023 Q2","2023 Q3","2023 Q4","2024 Q1","2024 Q2","2024 Q3","2024 Q4","2025 Q1","2025 Q2","2025 Q3"],"tickvals":[1,2,3,4,5,6.0000000000000009,7,8,9,10,11,12,13,14,14.999999999999998,16,17,18,19],"categoryorder":"array","categoryarray":["2021 Q1","2021 Q2","2021 Q3","2021 Q4","2022 Q1","2022 Q2","2022 Q3","2022 Q4","2023 Q1","2023 Q2","2023 Q3","2023 Q4","2024 Q1","2024 Q2","2024 Q3","2024 Q4","2025 Q1","2025 Q2","2025 Q3"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-45,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.46978664308564128,8.5587971032629486],"tickmode":"array","ticktext":["0","2","4","6","8"],"tickvals":[0,2,4,6,7.9999999999999991],"categoryorder":"array","categoryarray":["0","2","4","6","8"],"nticks":null,"ticks":"outside","tickcolor":"rgba(179,179,179,1)","ticklen":3.6529680365296811,"tickwidth":0.33208800332088001,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(222,222,222,1)","gridwidth":0.33208800332088001,"zeroline":false,"anchor":"x","title":{"text":"Gi*","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":"rgba(255,255,255,1)","line":{"color":"rgba(179,179,179,1)","width":0.66417600664176002,"linetype":"solid"},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":"rgba(255,255,255,1)","bordercolor":"transparent","borderwidth":1.8897637795275593,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"1248c444a3e98":{"x":{},"y":{},"type":"scatter"}},"cur_data":"1248c444a3e98","visdat":{"1248c444a3e98":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 <div class="cell">
@@ -2027,30 +2027,49 @@ alternative hypothesis: two.sided</code></pre>
 <li><code>nb_col</code> and <code>wt_col</code> pass the kNN weights from Section 8.2. Without them, the function builds Queen contiguity weights, and the three island townships would have only themselves as neighbours.</li>
 <li><code>threshold = 0.05</code> sets the significance level used for each Gi* bin (the default is 0.01), to match the 0.05 level used throughout this study.</li>
 </ul>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>A land mine inside sfdep
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>emerging_hotspot_analysis()</code> computes Gi* in the row order of the township layer, but it attaches the township codes after <code>split()</code>, which sorts them alphabetically. If the layer is not sorted by its location column, every EHSA class is attached to the <strong>wrong township</strong>. The Hunan data in the in-class exercise happens to be sorted, so the problem does not appear there. The MIMU layer is not (it starts with MMR017008, MMR017013, …), which is why it was sorted with <code>arrange(TS_PCODE)</code> in Section 3.1. The check below confirms the order.</p>
+</div>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>ehsa <span class="ot">&lt;-</span> <span class="fu">emerging_hotspot_analysis</span>(</span>
-<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> conflict_nb,</span>
-<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">.var =</span> <span class="st">"events"</span>,</span>
-<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">k =</span> <span class="dv">1</span>,</span>
-<span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">nb_col =</span> <span class="st">"nb"</span>,</span>
-<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">wt_col =</span> <span class="st">"wt"</span>,</span>
-<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">nsim =</span> <span class="dv">99</span>,</span>
-<span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">threshold =</span> <span class="fl">0.05</span></span>
-<span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(mmr_ts<span class="sc">$</span>TS_PCODE, <span class="fu">sort</span>(mmr_ts<span class="sc">$</span>TS_PCODE))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>ehsa <span class="ot">&lt;-</span> <span class="fu">emerging_hotspot_analysis</span>(</span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> conflict_nb,</span>
+<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">.var =</span> <span class="st">"events"</span>,</span>
+<span id="cb92-4"><a href="#cb92-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">k =</span> <span class="dv">1</span>,</span>
+<span id="cb92-5"><a href="#cb92-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">nb_col =</span> <span class="st">"nb"</span>,</span>
+<span id="cb92-6"><a href="#cb92-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">wt_col =</span> <span class="st">"wt"</span>,</span>
+<span id="cb92-7"><a href="#cb92-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">nsim =</span> <span class="dv">99</span>,</span>
+<span id="cb92-8"><a href="#cb92-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">threshold =</span> <span class="fl">0.05</span></span>
+<span id="cb92-9"><a href="#cb92-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="distribution-of-ehsa-classes" class="level3">
 <h3 class="anchored" data-anchor-id="distribution-of-ehsa-classes">8.5.1 Distribution of EHSA classes</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> ehsa,</span>
-<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">fct_infreq</span>(classification))) <span class="sc">+</span></span>
-<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
-<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Number of townships"</span>, <span class="at">y =</span> <span class="cn">NULL</span>,</span>
-<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"EHSA classes of Myanmar townships"</span>) <span class="sc">+</span></span>
-<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> ehsa,</span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">fct_infreq</span>(classification))) <span class="sc">+</span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Number of townships"</span>, <span class="at">y =</span> <span class="cn">NULL</span>,</span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"EHSA classes of Myanmar townships"</span>) <span class="sc">+</span></span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-53-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-54-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -2060,9 +2079,9 @@ alternative hypothesis: two.sided</code></pre>
 <h3 class="anchored" data-anchor-id="visualising-ehsa">8.5.2 Visualising EHSA</h3>
 <p>The EHSA results are joined to the township layer.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="ot">&lt;-</span> mmr_ts <span class="sc">%&gt;%</span></span>
-<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(ehsa,</span>
-<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">join_by</span>(TS_PCODE <span class="sc">==</span> location))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="ot">&lt;-</span> mmr_ts <span class="sc">%&gt;%</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(ehsa,</span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">join_by</span>(TS_PCODE <span class="sc">==</span> location))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -2079,60 +2098,60 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 <p>A fixed colour for each EHSA class keeps the maps comparable: hot spot classes use warm colours and cold spot classes use cool colours. (sfdep spells “oscillating” as “oscilating”.)</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a>ehsa_pal <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"new hotspot"</span>           <span class="ot">=</span> <span class="st">"#ffffb2"</span>,</span>
-<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"consecutive hotspot"</span>   <span class="ot">=</span> <span class="st">"#fecc5c"</span>,</span>
-<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"intensifying hotspot"</span>  <span class="ot">=</span> <span class="st">"#bd0026"</span>,</span>
-<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"persistent hotspot"</span>    <span class="ot">=</span> <span class="st">"#800026"</span>,</span>
-<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"diminishing hotspot"</span>   <span class="ot">=</span> <span class="st">"#fd8d3c"</span>,</span>
-<span id="cb93-7"><a href="#cb93-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sporadic hotspot"</span>      <span class="ot">=</span> <span class="st">"#f768a1"</span>,</span>
-<span id="cb93-8"><a href="#cb93-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"oscilating hotspot"</span>    <span class="ot">=</span> <span class="st">"#ae017e"</span>,</span>
-<span id="cb93-9"><a href="#cb93-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"historical hotspot"</span>    <span class="ot">=</span> <span class="st">"#c7a17a"</span>,</span>
-<span id="cb93-10"><a href="#cb93-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"new coldspot"</span>          <span class="ot">=</span> <span class="st">"#c7e9b4"</span>,</span>
-<span id="cb93-11"><a href="#cb93-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"consecutive coldspot"</span>  <span class="ot">=</span> <span class="st">"#7fcdbb"</span>,</span>
-<span id="cb93-12"><a href="#cb93-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"intensifying coldspot"</span> <span class="ot">=</span> <span class="st">"#253494"</span>,</span>
-<span id="cb93-13"><a href="#cb93-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"persistent coldspot"</span>   <span class="ot">=</span> <span class="st">"#081d58"</span>,</span>
-<span id="cb93-14"><a href="#cb93-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"diminishing coldspot"</span>  <span class="ot">=</span> <span class="st">"#9ecae1"</span>,</span>
-<span id="cb93-15"><a href="#cb93-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sporadic coldspot"</span>     <span class="ot">=</span> <span class="st">"#41b6c4"</span>,</span>
-<span id="cb93-16"><a href="#cb93-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"oscilating coldspot"</span>   <span class="ot">=</span> <span class="st">"#6a51a3"</span>,</span>
-<span id="cb93-17"><a href="#cb93-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"historical coldspot"</span>   <span class="ot">=</span> <span class="st">"#bdbdbd"</span>)</span>
-<span id="cb93-18"><a href="#cb93-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb93-19"><a href="#cb93-19" aria-hidden="true" tabindex="-1"></a><span class="co"># keep only the significant classes, ordered as in ehsa_pal</span></span>
-<span id="cb93-20"><a href="#cb93-20" aria-hidden="true" tabindex="-1"></a>sig_classes <span class="ot">&lt;-</span> <span class="cf">function</span>(ehsa_map) {</span>
-<span id="cb93-21"><a href="#cb93-21" aria-hidden="true" tabindex="-1"></a>  ehsa_map <span class="sc">%&gt;%</span></span>
-<span id="cb93-22"><a href="#cb93-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(classification <span class="sc">!=</span> <span class="st">"no pattern detected"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb93-23"><a href="#cb93-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">classification =</span> <span class="fu">factor</span>(</span>
-<span id="cb93-24"><a href="#cb93-24" aria-hidden="true" tabindex="-1"></a>      classification,</span>
-<span id="cb93-25"><a href="#cb93-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">intersect</span>(<span class="fu">names</span>(ehsa_pal), <span class="fu">unique</span>(classification))))</span>
-<span id="cb93-26"><a href="#cb93-26" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a>ehsa_pal <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"new hotspot"</span>           <span class="ot">=</span> <span class="st">"#ffffb2"</span>,</span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"consecutive hotspot"</span>   <span class="ot">=</span> <span class="st">"#fecc5c"</span>,</span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"intensifying hotspot"</span>  <span class="ot">=</span> <span class="st">"#bd0026"</span>,</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"persistent hotspot"</span>    <span class="ot">=</span> <span class="st">"#800026"</span>,</span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"diminishing hotspot"</span>   <span class="ot">=</span> <span class="st">"#fd8d3c"</span>,</span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sporadic hotspot"</span>      <span class="ot">=</span> <span class="st">"#f768a1"</span>,</span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"oscilating hotspot"</span>    <span class="ot">=</span> <span class="st">"#ae017e"</span>,</span>
+<span id="cb95-9"><a href="#cb95-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"historical hotspot"</span>    <span class="ot">=</span> <span class="st">"#c7a17a"</span>,</span>
+<span id="cb95-10"><a href="#cb95-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"new coldspot"</span>          <span class="ot">=</span> <span class="st">"#c7e9b4"</span>,</span>
+<span id="cb95-11"><a href="#cb95-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"consecutive coldspot"</span>  <span class="ot">=</span> <span class="st">"#7fcdbb"</span>,</span>
+<span id="cb95-12"><a href="#cb95-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"intensifying coldspot"</span> <span class="ot">=</span> <span class="st">"#253494"</span>,</span>
+<span id="cb95-13"><a href="#cb95-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"persistent coldspot"</span>   <span class="ot">=</span> <span class="st">"#081d58"</span>,</span>
+<span id="cb95-14"><a href="#cb95-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"diminishing coldspot"</span>  <span class="ot">=</span> <span class="st">"#9ecae1"</span>,</span>
+<span id="cb95-15"><a href="#cb95-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sporadic coldspot"</span>     <span class="ot">=</span> <span class="st">"#41b6c4"</span>,</span>
+<span id="cb95-16"><a href="#cb95-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"oscilating coldspot"</span>   <span class="ot">=</span> <span class="st">"#6a51a3"</span>,</span>
+<span id="cb95-17"><a href="#cb95-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"historical coldspot"</span>   <span class="ot">=</span> <span class="st">"#bdbdbd"</span>)</span>
+<span id="cb95-18"><a href="#cb95-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-19"><a href="#cb95-19" aria-hidden="true" tabindex="-1"></a><span class="co"># keep only the significant classes, ordered as in ehsa_pal</span></span>
+<span id="cb95-20"><a href="#cb95-20" aria-hidden="true" tabindex="-1"></a>sig_classes <span class="ot">&lt;-</span> <span class="cf">function</span>(ehsa_map) {</span>
+<span id="cb95-21"><a href="#cb95-21" aria-hidden="true" tabindex="-1"></a>  ehsa_map <span class="sc">%&gt;%</span></span>
+<span id="cb95-22"><a href="#cb95-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(classification <span class="sc">!=</span> <span class="st">"no pattern detected"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb95-23"><a href="#cb95-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">classification =</span> <span class="fu">factor</span>(</span>
+<span id="cb95-24"><a href="#cb95-24" aria-hidden="true" tabindex="-1"></a>      classification,</span>
+<span id="cb95-25"><a href="#cb95-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">intersect</span>(<span class="fu">names</span>(ehsa_pal), <span class="fu">unique</span>(classification))))</span>
+<span id="cb95-26"><a href="#cb95-26" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>ehsa_sig <span class="ot">&lt;-</span> <span class="fu">sig_classes</span>(mmr_ehsa)</span>
-<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_mode</span>(<span class="st">"plot"</span>)</span>
-<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mmr_ehsa) <span class="sc">+</span></span>
-<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"grey95"</span>) <span class="sc">+</span></span>
-<span id="cb94-6"><a href="#cb94-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb94-7"><a href="#cb94-7" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(ehsa_sig) <span class="sc">+</span></span>
-<span id="cb94-8"><a href="#cb94-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"classification"</span>,</span>
-<span id="cb94-9"><a href="#cb94-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_categorical</span>(</span>
-<span id="cb94-10"><a href="#cb94-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="fu">unname</span>(ehsa_pal[<span class="fu">levels</span>(ehsa_sig<span class="sc">$</span>classification)])),</span>
-<span id="cb94-11"><a href="#cb94-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"EHSA class"</span>)) <span class="sc">+</span></span>
-<span id="cb94-12"><a href="#cb94-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
-<span id="cb94-13"><a href="#cb94-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Emerging hot and cold spots of armed conflict, 2021 Q1 to 2025 Q3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>ehsa_sig <span class="ot">&lt;-</span> <span class="fu">sig_classes</span>(mmr_ehsa)</span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_mode</span>(<span class="st">"plot"</span>)</span>
+<span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mmr_ehsa) <span class="sc">+</span></span>
+<span id="cb96-5"><a href="#cb96-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"grey95"</span>) <span class="sc">+</span></span>
+<span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb96-7"><a href="#cb96-7" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(ehsa_sig) <span class="sc">+</span></span>
+<span id="cb96-8"><a href="#cb96-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"classification"</span>,</span>
+<span id="cb96-9"><a href="#cb96-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.scale =</span> <span class="fu">tm_scale_categorical</span>(</span>
+<span id="cb96-10"><a href="#cb96-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">values =</span> <span class="fu">unname</span>(ehsa_pal[<span class="fu">levels</span>(ehsa_sig<span class="sc">$</span>classification)])),</span>
+<span id="cb96-11"><a href="#cb96-11" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"EHSA class"</span>)) <span class="sc">+</span></span>
+<span id="cb96-12"><a href="#cb96-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb96-13"><a href="#cb96-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_title</span>(<span class="st">"Emerging hot and cold spots of armed conflict, 2021 Q1 to 2025 Q3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-56-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-57-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="sc">%&gt;%</span></span>
-<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(classification, <span class="at">sort =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="sc">%&gt;%</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(classification, <span class="at">sort =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2144,35 +2163,35 @@ alternative hypothesis: two.sided</code></pre>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">127</td>
+<td style="text-align: right;">126</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">no pattern detected</td>
-<td style="text-align: right;">73</td>
+<td style="text-align: right;">79</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">47</td>
+<td style="text-align: right;">43</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">30</td>
+<td style="text-align: right;">28</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">24</td>
+<td style="text-align: right;">21</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">consecutive coldspot</td>
-<td style="text-align: right;">15</td>
+<td style="text-align: left;">oscilating coldspot</td>
+<td style="text-align: right;">13</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">oscilating coldspot</td>
-<td style="text-align: right;">7</td>
+<td style="text-align: left;">consecutive coldspot</td>
+<td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">consecutive hotspot</td>
-<td style="text-align: right;">5</td>
+<td style="text-align: right;">8</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">new hotspot</td>
@@ -2183,12 +2202,12 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="sc">%&gt;%</span></span>
-<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(classification <span class="sc">!=</span> <span class="st">"no pattern detected"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(ST, classification) <span class="sc">%&gt;%</span></span>
-<span id="cb96-5"><a href="#cb96-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(classification, <span class="fu">desc</span>(n)) <span class="sc">%&gt;%</span></span>
-<span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a>mmr_ehsa <span class="sc">%&gt;%</span></span>
+<span id="cb98-2"><a href="#cb98-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb98-3"><a href="#cb98-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(classification <span class="sc">!=</span> <span class="st">"no pattern detected"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb98-4"><a href="#cb98-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(ST, classification) <span class="sc">%&gt;%</span></span>
+<span id="cb98-5"><a href="#cb98-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(classification, <span class="fu">desc</span>(n)) <span class="sc">%&gt;%</span></span>
+<span id="cb98-6"><a href="#cb98-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2200,89 +2219,109 @@ alternative hypothesis: two.sided</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Sagaing</td>
+<td style="text-align: left;">Yangon</td>
 <td style="text-align: left;">consecutive coldspot</td>
-<td style="text-align: right;">12</td>
+<td style="text-align: right;">7</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Magway</td>
+<td style="text-align: left;">Mandalay</td>
 <td style="text-align: left;">consecutive coldspot</td>
-<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Bago (West)</td>
-<td style="text-align: left;">consecutive coldspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Bago (West)</td>
+<td style="text-align: left;">Sagaing</td>
 <td style="text-align: left;">consecutive hotspot</td>
 <td style="text-align: right;">2</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">Bago (East)</td>
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kayin</td>
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Mandalay</td>
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Mon</td>
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Shan (North)</td>
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Tanintharyi</td>
 <td style="text-align: left;">consecutive hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Kachin</td>
-<td style="text-align: left;">consecutive hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Shan (South)</td>
-<td style="text-align: left;">consecutive hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Ayeyarwady</td>
 <td style="text-align: left;">new hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Kayin</td>
+<td style="text-align: left;">Sagaing</td>
 <td style="text-align: left;">new hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Magway</td>
+<td style="text-align: left;">Mandalay</td>
 <td style="text-align: left;">oscilating coldspot</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Shan (South)</td>
+<td style="text-align: left;">Shan (North)</td>
 <td style="text-align: left;">oscilating coldspot</td>
-<td style="text-align: right;">2</td>
+<td style="text-align: right;">5</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Tanintharyi</td>
-<td style="text-align: left;">oscilating coldspot</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Chin</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">4</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Nay Pyi Taw</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">4</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">Rakhine</td>
+<td style="text-align: left;">oscilating coldspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Sagaing</td>
+<td style="text-align: left;">oscilating coldspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Yangon</td>
+<td style="text-align: left;">oscilating coldspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Magway</td>
+<td style="text-align: left;">oscilating hotspot</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Rakhine</td>
+<td style="text-align: left;">oscilating hotspot</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Sagaing</td>
 <td style="text-align: left;">oscilating hotspot</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Mandalay</td>
 <td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Ayeyarwady</td>
+<td style="text-align: left;">Tanintharyi</td>
 <td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Bago (East)</td>
@@ -2295,192 +2334,152 @@ alternative hypothesis: two.sided</code></pre>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Kachin</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">Kayah</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Kayin</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Magway</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Mon</td>
 <td style="text-align: left;">oscilating hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Shan (East)</td>
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Yangon</td>
 <td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">13</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Tanintharyi</td>
-<td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">7</td>
+<td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Shan (North)</td>
 <td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: right;">6</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Shan (South)</td>
+<td style="text-align: left;">Nay Pyi Taw</td>
 <td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Sagaing</td>
+<td style="text-align: left;">Shan (South)</td>
+<td style="text-align: left;">persistent coldspot</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Yangon</td>
+<td style="text-align: left;">persistent coldspot</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Ayeyarwady</td>
 <td style="text-align: left;">persistent coldspot</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">Mandalay</td>
+<td style="text-align: left;">persistent coldspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">Yangon</td>
 <td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">28</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Sagaing</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">23</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Shan (North)</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">17</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Magway</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">11</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Mandalay</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">11</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Rakhine</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">9</td>
+<td style="text-align: right;">30</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Ayeyarwady</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Shan (South)</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Magway</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Bago (West)</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kachin</td>
 <td style="text-align: left;">sporadic coldspot</td>
 <td style="text-align: right;">8</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Mon</td>
+<td style="text-align: left;">Sagaing</td>
 <td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: right;">8</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Bago (West)</td>
+<td style="text-align: left;">Mandalay</td>
 <td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">3</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Kayin</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">3</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Kachin</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Kayah</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Shan (East)</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Bago (East)</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Chin</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">1</td>
+<td style="text-align: right;">6</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Nay Pyi Taw</td>
 <td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Shan (South)</td>
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Ayeyarwady</td>
-<td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">12</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Shan (South)</td>
-<td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">11</td>
-</tr>
-<tr class="even">
 <td style="text-align: left;">Bago (East)</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Mon</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Shan (North)</td>
+<td style="text-align: left;">sporadic hotspot</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Kachin</td>
+<td style="text-align: left;">sporadic hotspot</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Chin</td>
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">6</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">Bago (West)</td>
-<td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">4</td>
-</tr>
 <tr class="even">
-<td style="text-align: left;">Mandalay</td>
+<td style="text-align: left;">Kayin</td>
 <td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: right;">5</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Kachin</td>
+<td style="text-align: left;">Sagaing</td>
 <td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Magway</td>
+<td style="text-align: left;">Tanintharyi</td>
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Kayah</td>
+<td style="text-align: left;">Bago (East)</td>
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Shan (East)</td>
+<td style="text-align: left;">Mon</td>
+<td style="text-align: left;">sporadic hotspot</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kayah</td>
+<td style="text-align: left;">sporadic hotspot</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Magway</td>
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Tanintharyi</td>
+<td style="text-align: left;">Mandalay</td>
 <td style="text-align: left;">sporadic hotspot</td>
 <td style="text-align: right;">1</td>
 </tr>
@@ -2489,9 +2488,9 @@ alternative hypothesis: two.sided</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(gi_stars, <span class="st">"data/rds/gi_stars.rds"</span>)</span>
-<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(mmr_ehsa, <span class="st">"data/rds/mmr_ehsa.rds"</span>)</span>
-<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_pal, <span class="st">"data/rds/ehsa_pal.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(gi_stars, <span class="st">"data/rds/gi_stars.rds"</span>)</span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(mmr_ehsa, <span class="st">"data/rds/mmr_ehsa.rds"</span>)</span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_pal, <span class="st">"data/rds/ehsa_pal.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="interpreting-the-ehsa-classes" class="level3">
@@ -2563,76 +2562,76 @@ alternative hypothesis: two.sided</code></pre>
 <h1>9. Value-added Analysis: Do Air Strikes and Ground Battles Evolve Differently?</h1>
 <p>Since 2023, the military has relied increasingly on air and drone strikes. The overall EHSA mixes these with ground battles. Running EHSA separately for <strong>Battles</strong> and <strong>Explosions/Remote violence</strong> shows whether the two forms of violence are spreading in different places.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a>type_qtr <span class="ot">&lt;-</span> <span class="cf">function</span>(type) {</span>
-<span id="cb98-2"><a href="#cb98-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">expand_grid</span>(<span class="at">TS_PCODE =</span> mmr_ts<span class="sc">$</span>TS_PCODE,</span>
-<span id="cb98-3"><a href="#cb98-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">quarter_id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">19</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-4"><a href="#cb98-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(acled_df <span class="sc">%&gt;%</span></span>
-<span id="cb98-5"><a href="#cb98-5" aria-hidden="true" tabindex="-1"></a>                <span class="fu">filter</span>(event_type <span class="sc">==</span> type) <span class="sc">%&gt;%</span></span>
-<span id="cb98-6"><a href="#cb98-6" aria-hidden="true" tabindex="-1"></a>                <span class="fu">count</span>(TS_PCODE, quarter_id, <span class="at">name =</span> <span class="st">"events"</span>),</span>
-<span id="cb98-7"><a href="#cb98-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"TS_PCODE"</span>, <span class="st">"quarter_id"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb98-8"><a href="#cb98-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">events =</span> <span class="fu">replace_na</span>(events, <span class="dv">0</span>L),</span>
-<span id="cb98-9"><a href="#cb98-9" aria-hidden="true" tabindex="-1"></a>           <span class="at">quarter_id =</span> <span class="fu">as.integer</span>(quarter_id))</span>
-<span id="cb98-10"><a href="#cb98-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb98-11"><a href="#cb98-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb98-12"><a href="#cb98-12" aria-hidden="true" tabindex="-1"></a>run_ehsa <span class="ot">&lt;-</span> <span class="cf">function</span>(qtr) {</span>
-<span id="cb98-13"><a href="#cb98-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">spacetime</span>(qtr, mmr_ts,</span>
-<span id="cb98-14"><a href="#cb98-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">.loc_col =</span> <span class="st">"TS_PCODE"</span>,</span>
-<span id="cb98-15"><a href="#cb98-15" aria-hidden="true" tabindex="-1"></a>            <span class="at">.time_col =</span> <span class="st">"quarter_id"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-16"><a href="#cb98-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">activate</span>(<span class="st">"geometry"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-17"><a href="#cb98-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">include_self</span>(<span class="fu">st_knn</span>(geometry, <span class="at">k =</span> <span class="dv">5</span>)),</span>
-<span id="cb98-18"><a href="#cb98-18" aria-hidden="true" tabindex="-1"></a>           <span class="at">wt =</span> <span class="fu">st_inverse_distance</span>(nb, geometry,</span>
-<span id="cb98-19"><a href="#cb98-19" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">scale =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="dv">1</span>),</span>
-<span id="cb98-20"><a href="#cb98-20" aria-hidden="true" tabindex="-1"></a>           <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-21"><a href="#cb98-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_nbs</span>(<span class="st">"nb"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-22"><a href="#cb98-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_wts</span>(<span class="st">"wt"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb98-23"><a href="#cb98-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emerging_hotspot_analysis</span>(<span class="at">.var =</span> <span class="st">"events"</span>, <span class="at">k =</span> <span class="dv">1</span>,</span>
-<span id="cb98-24"><a href="#cb98-24" aria-hidden="true" tabindex="-1"></a>                              <span class="at">nb_col =</span> <span class="st">"nb"</span>, <span class="at">wt_col =</span> <span class="st">"wt"</span>,</span>
-<span id="cb98-25"><a href="#cb98-25" aria-hidden="true" tabindex="-1"></a>                              <span class="at">nsim =</span> <span class="dv">99</span>, <span class="at">threshold =</span> <span class="fl">0.05</span>)</span>
-<span id="cb98-26"><a href="#cb98-26" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb98-27"><a href="#cb98-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb98-28"><a href="#cb98-28" aria-hidden="true" tabindex="-1"></a>ehsa_battles <span class="ot">&lt;-</span> <span class="fu">run_ehsa</span>(<span class="fu">type_qtr</span>(<span class="st">"Battles"</span>))</span>
-<span id="cb98-29"><a href="#cb98-29" aria-hidden="true" tabindex="-1"></a>ehsa_explosions <span class="ot">&lt;-</span> <span class="fu">run_ehsa</span>(<span class="fu">type_qtr</span>(<span class="st">"Explosions/Remote violence"</span>))</span>
-<span id="cb98-30"><a href="#cb98-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb98-31"><a href="#cb98-31" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_battles, <span class="st">"data/rds/ehsa_battles.rds"</span>)</span>
-<span id="cb98-32"><a href="#cb98-32" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_explosions, <span class="st">"data/rds/ehsa_explosions.rds"</span>)</span>
-<span id="cb98-33"><a href="#cb98-33" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(acled_df, <span class="st">"data/rds/acled_df.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>type_qtr <span class="ot">&lt;-</span> <span class="cf">function</span>(type) {</span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">expand_grid</span>(<span class="at">TS_PCODE =</span> mmr_ts<span class="sc">$</span>TS_PCODE,</span>
+<span id="cb100-3"><a href="#cb100-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">quarter_id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">19</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-4"><a href="#cb100-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(acled_df <span class="sc">%&gt;%</span></span>
+<span id="cb100-5"><a href="#cb100-5" aria-hidden="true" tabindex="-1"></a>                <span class="fu">filter</span>(event_type <span class="sc">==</span> type) <span class="sc">%&gt;%</span></span>
+<span id="cb100-6"><a href="#cb100-6" aria-hidden="true" tabindex="-1"></a>                <span class="fu">count</span>(TS_PCODE, quarter_id, <span class="at">name =</span> <span class="st">"events"</span>),</span>
+<span id="cb100-7"><a href="#cb100-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"TS_PCODE"</span>, <span class="st">"quarter_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb100-8"><a href="#cb100-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">events =</span> <span class="fu">replace_na</span>(events, <span class="dv">0</span>L),</span>
+<span id="cb100-9"><a href="#cb100-9" aria-hidden="true" tabindex="-1"></a>           <span class="at">quarter_id =</span> <span class="fu">as.integer</span>(quarter_id))</span>
+<span id="cb100-10"><a href="#cb100-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb100-11"><a href="#cb100-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb100-12"><a href="#cb100-12" aria-hidden="true" tabindex="-1"></a>run_ehsa <span class="ot">&lt;-</span> <span class="cf">function</span>(qtr) {</span>
+<span id="cb100-13"><a href="#cb100-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">spacetime</span>(qtr, mmr_ts,</span>
+<span id="cb100-14"><a href="#cb100-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">.loc_col =</span> <span class="st">"TS_PCODE"</span>,</span>
+<span id="cb100-15"><a href="#cb100-15" aria-hidden="true" tabindex="-1"></a>            <span class="at">.time_col =</span> <span class="st">"quarter_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-16"><a href="#cb100-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">activate</span>(<span class="st">"geometry"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-17"><a href="#cb100-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">nb =</span> <span class="fu">include_self</span>(<span class="fu">st_knn</span>(geometry, <span class="at">k =</span> <span class="dv">5</span>)),</span>
+<span id="cb100-18"><a href="#cb100-18" aria-hidden="true" tabindex="-1"></a>           <span class="at">wt =</span> <span class="fu">st_inverse_distance</span>(nb, geometry,</span>
+<span id="cb100-19"><a href="#cb100-19" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">scale =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="dv">1</span>),</span>
+<span id="cb100-20"><a href="#cb100-20" aria-hidden="true" tabindex="-1"></a>           <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-21"><a href="#cb100-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_nbs</span>(<span class="st">"nb"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-22"><a href="#cb100-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_wts</span>(<span class="st">"wt"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb100-23"><a href="#cb100-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emerging_hotspot_analysis</span>(<span class="at">.var =</span> <span class="st">"events"</span>, <span class="at">k =</span> <span class="dv">1</span>,</span>
+<span id="cb100-24"><a href="#cb100-24" aria-hidden="true" tabindex="-1"></a>                              <span class="at">nb_col =</span> <span class="st">"nb"</span>, <span class="at">wt_col =</span> <span class="st">"wt"</span>,</span>
+<span id="cb100-25"><a href="#cb100-25" aria-hidden="true" tabindex="-1"></a>                              <span class="at">nsim =</span> <span class="dv">99</span>, <span class="at">threshold =</span> <span class="fl">0.05</span>)</span>
+<span id="cb100-26"><a href="#cb100-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb100-27"><a href="#cb100-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb100-28"><a href="#cb100-28" aria-hidden="true" tabindex="-1"></a>ehsa_battles <span class="ot">&lt;-</span> <span class="fu">run_ehsa</span>(<span class="fu">type_qtr</span>(<span class="st">"Battles"</span>))</span>
+<span id="cb100-29"><a href="#cb100-29" aria-hidden="true" tabindex="-1"></a>ehsa_explosions <span class="ot">&lt;-</span> <span class="fu">run_ehsa</span>(<span class="fu">type_qtr</span>(<span class="st">"Explosions/Remote violence"</span>))</span>
+<span id="cb100-30"><a href="#cb100-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb100-31"><a href="#cb100-31" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_battles, <span class="st">"data/rds/ehsa_battles.rds"</span>)</span>
+<span id="cb100-32"><a href="#cb100-32" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(ehsa_explosions, <span class="st">"data/rds/ehsa_explosions.rds"</span>)</span>
+<span id="cb100-33"><a href="#cb100-33" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(acled_df, <span class="st">"data/rds/acled_df.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>map_ehsa_type <span class="ot">&lt;-</span> <span class="cf">function</span>(ehsa_res, title) {</span>
-<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>  ehsa_map <span class="ot">&lt;-</span> mmr_ts <span class="sc">%&gt;%</span></span>
-<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(ehsa_res, <span class="at">by =</span> <span class="fu">join_by</span>(TS_PCODE <span class="sc">==</span> location))</span>
-<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a>  ehsa_map_sig <span class="ot">&lt;-</span> <span class="fu">sig_classes</span>(ehsa_map)</span>
-<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_shape</span>(ehsa_map) <span class="sc">+</span></span>
-<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"grey95"</span>) <span class="sc">+</span></span>
-<span id="cb99-7"><a href="#cb99-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb99-8"><a href="#cb99-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_shape</span>(ehsa_map_sig) <span class="sc">+</span></span>
-<span id="cb99-9"><a href="#cb99-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"classification"</span>,</span>
-<span id="cb99-10"><a href="#cb99-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">fill.scale =</span> <span class="fu">tm_scale_categorical</span>(</span>
-<span id="cb99-11"><a href="#cb99-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">values =</span> <span class="fu">unname</span>(ehsa_pal[<span class="fu">levels</span>(ehsa_map_sig<span class="sc">$</span>classification)])),</span>
-<span id="cb99-12"><a href="#cb99-12" aria-hidden="true" tabindex="-1"></a>                <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"EHSA class"</span>)) <span class="sc">+</span></span>
-<span id="cb99-13"><a href="#cb99-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
-<span id="cb99-14"><a href="#cb99-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_title</span>(title)</span>
-<span id="cb99-15"><a href="#cb99-15" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb99-16"><a href="#cb99-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb99-17"><a href="#cb99-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(</span>
-<span id="cb99-18"><a href="#cb99-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_ehsa_type</span>(ehsa_battles, <span class="st">"EHSA: Battles"</span>),</span>
-<span id="cb99-19"><a href="#cb99-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_ehsa_type</span>(ehsa_explosions, <span class="st">"EHSA: Explosions/Remote violence"</span>),</span>
-<span id="cb99-20"><a href="#cb99-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>map_ehsa_type <span class="ot">&lt;-</span> <span class="cf">function</span>(ehsa_res, title) {</span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a>  ehsa_map <span class="ot">&lt;-</span> mmr_ts <span class="sc">%&gt;%</span></span>
+<span id="cb101-3"><a href="#cb101-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(ehsa_res, <span class="at">by =</span> <span class="fu">join_by</span>(TS_PCODE <span class="sc">==</span> location))</span>
+<span id="cb101-4"><a href="#cb101-4" aria-hidden="true" tabindex="-1"></a>  ehsa_map_sig <span class="ot">&lt;-</span> <span class="fu">sig_classes</span>(ehsa_map)</span>
+<span id="cb101-5"><a href="#cb101-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_shape</span>(ehsa_map) <span class="sc">+</span></span>
+<span id="cb101-6"><a href="#cb101-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"grey95"</span>) <span class="sc">+</span></span>
+<span id="cb101-7"><a href="#cb101-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb101-8"><a href="#cb101-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_shape</span>(ehsa_map_sig) <span class="sc">+</span></span>
+<span id="cb101-9"><a href="#cb101-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_polygons</span>(<span class="at">fill =</span> <span class="st">"classification"</span>,</span>
+<span id="cb101-10"><a href="#cb101-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">fill.scale =</span> <span class="fu">tm_scale_categorical</span>(</span>
+<span id="cb101-11"><a href="#cb101-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">values =</span> <span class="fu">unname</span>(ehsa_pal[<span class="fu">levels</span>(ehsa_map_sig<span class="sc">$</span>classification)])),</span>
+<span id="cb101-12"><a href="#cb101-12" aria-hidden="true" tabindex="-1"></a>                <span class="at">fill.legend =</span> <span class="fu">tm_legend</span>(<span class="at">title =</span> <span class="st">"EHSA class"</span>)) <span class="sc">+</span></span>
+<span id="cb101-13"><a href="#cb101-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_borders</span>(<span class="at">col_alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb101-14"><a href="#cb101-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tm_title</span>(title)</span>
+<span id="cb101-15"><a href="#cb101-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb101-16"><a href="#cb101-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb101-17"><a href="#cb101-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_arrange</span>(</span>
+<span id="cb101-18"><a href="#cb101-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_ehsa_type</span>(ehsa_battles, <span class="st">"EHSA: Battles"</span>),</span>
+<span id="cb101-19"><a href="#cb101-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_ehsa_type</span>(ehsa_explosions, <span class="st">"EHSA: Explosions/Remote violence"</span>),</span>
+<span id="cb101-20"><a href="#cb101-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-61-1.png" class="img-fluid figure-img" width="1344"></p>
+<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-62-1.png" class="img-fluid figure-img" width="1344"></p>
 </figure>
 </div>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
-<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a>  ehsa_battles <span class="sc">%&gt;%</span> <span class="fu">count</span>(classification) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">type =</span> <span class="st">"Battles"</span>),</span>
-<span id="cb100-3"><a href="#cb100-3" aria-hidden="true" tabindex="-1"></a>  ehsa_explosions <span class="sc">%&gt;%</span> <span class="fu">count</span>(classification) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">type =</span> <span class="st">"Explosions/Remote violence"</span>)</span>
-<span id="cb100-4"><a href="#cb100-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb100-5"><a href="#cb100-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> type, <span class="at">values_from =</span> n, <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb100-6"><a href="#cb100-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a>  ehsa_battles <span class="sc">%&gt;%</span> <span class="fu">count</span>(classification) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">type =</span> <span class="st">"Battles"</span>),</span>
+<span id="cb102-3"><a href="#cb102-3" aria-hidden="true" tabindex="-1"></a>  ehsa_explosions <span class="sc">%&gt;%</span> <span class="fu">count</span>(classification) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">type =</span> <span class="st">"Explosions/Remote violence"</span>)</span>
+<span id="cb102-4"><a href="#cb102-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb102-5"><a href="#cb102-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> type, <span class="at">values_from =</span> n, <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb102-6"><a href="#cb102-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2644,49 +2643,49 @@ alternative hypothesis: two.sided</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">consecutive hotspot</td>
-<td style="text-align: right;">3</td>
+<td style="text-align: left;">consecutive coldspot</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">consecutive hotspot</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">new hotspot</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">no pattern detected</td>
-<td style="text-align: right;">54</td>
-<td style="text-align: right;">70</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">oscilating coldspot</td>
-<td style="text-align: right;">17</td>
-<td style="text-align: right;">14</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">68</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">oscilating hotspot</td>
-<td style="text-align: right;">17</td>
-<td style="text-align: right;">32</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">persistent coldspot</td>
-<td style="text-align: right;">36</td>
+<td style="text-align: left;">oscilating coldspot</td>
+<td style="text-align: right;">12</td>
 <td style="text-align: right;">16</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">oscilating hotspot</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">30</td>
+</tr>
 <tr class="odd">
-<td style="text-align: left;">sporadic coldspot</td>
-<td style="text-align: right;">143</td>
-<td style="text-align: right;">139</td>
+<td style="text-align: left;">persistent coldspot</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">16</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">sporadic hotspot</td>
-<td style="text-align: right;">59</td>
-<td style="text-align: right;">36</td>
+<td style="text-align: left;">sporadic coldspot</td>
+<td style="text-align: right;">140</td>
+<td style="text-align: right;">145</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">consecutive coldspot</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">10</td>
+<td style="text-align: left;">sporadic hotspot</td>
+<td style="text-align: right;">68</td>
+<td style="text-align: right;">38</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">intensifying hotspot</td>
@@ -2696,7 +2695,7 @@ alternative hypothesis: two.sided</code></pre>
 <tr class="odd">
 <td style="text-align: left;">new coldspot</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
 </tr>
 </tbody>
 </table>
@@ -2724,7 +2723,7 @@ alternative hypothesis: two.sided</code></pre>
 <ul>
 <li><strong>Reporting bias.</strong> ACLED depends on media and local partners; areas under information blackout or internet shutdown may be under-recorded, so cold spots may partly reflect missing reports.</li>
 <li><strong>Counts, not intensity.</strong> One event can be a brief clash or a days-long battle; fatalities are often estimates.</li>
-<li><strong>Location precision.</strong> About two in five events are located only near a town (<code>geo_precision</code> 2), which is acceptable at township level but not at finer scales.</li>
+<li><strong>Location precision.</strong> Nearly half (45%) of armed conflict events are located only near a town (<code>geo_precision</code> 2), which is acceptable at township level but not at finer scales.</li>
 <li><strong>Modifiable areal unit problem.</strong> Townships vary greatly in area and population; results could change with other units (e.g.&nbsp;hexagons).</li>
 <li><strong>Population data.</strong> The 2023 estimates do not reflect large conflict-related displacement after 2023.</li>
 <li><strong>Neighbourhood definition.</strong> Results depend on k = 5 nearest neighbours; island townships such as Cocokyun have very distant neighbours.</li>

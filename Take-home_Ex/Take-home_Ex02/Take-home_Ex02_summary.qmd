@@ -193,7 +193,10 @@ acled_df %>%
 ::: {.card}
 [What we see]{.eyebrow}
 
-✏️ *Fill in after rendering: overall trend, peaks, and the changing mix of battles vs explosions/remote violence.*
+-   Conflict **escalated through 2021** after the coup
+-   **Peak in 2023 Q4** (Operation 1027): ~1,900 explosions/remote violence and ~1,650 battles in one quarter
+-   Since late 2023, **explosions/remote violence outnumber battles** every quarter: a shift towards air, drone and artillery strikes
+-   Violence against civilians peaked in 2021 Q4 and has **declined slowly**
 :::
 :::
 ::::
@@ -252,7 +255,10 @@ tm_shape(lisa) +
 
 **`r n_hh` townships** form High-High clusters.
 
-✏️ *Fill in after rendering: where the High-High and Low-Low clusters are, and one or two notable outliers.*
+-   **Global Moran's I = 0.45** (p < 0.001): conflict is strongly clustered
+-   **High-High core** in the central Dry Zone: Sagaing, with Mandalay and Magway; smaller clusters in Tanintharyi, Kachin and Kayah
+-   **Low-Low**: Ayeyarwady delta, Yangon, Nay Pyi Taw, eastern Shan
+-   **No High-Low outliers**: heavy conflict always spills over to neighbours
 :::
 :::
 ::::
@@ -279,7 +285,9 @@ tm_shape(HCSA) +
 
 **`r n_hot` townships** are significant hot spots.
 
-✏️ *Fill in after rendering: compare with the LISA clusters.*
+-   Hot spots **confirm the Dry Zone core** found by LISA (Gi\* up to ~5)
+-   Gi\* adds a hot spot on the **Kayin–Thailand border**, driven by one very active township
+-   Cold spots match LISA's Low-Low areas
 :::
 :::
 ::::
