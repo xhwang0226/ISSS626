@@ -1,0 +1,371 @@
+---
+title: "Where Is Armed Conflict in Myanmar Clustering, and How Is It Changing?"
+subtitle: "ISSS626 · Take-home Exercise 2 · Executive Summary"
+author: "Wang Xiaohan"
+date: "2026-10-25"
+format:
+  revealjs:
+    theme: [default, summary.scss]
+    width: 1280
+    height: 720
+    slide-number: true
+    transition: fade
+    scrollable: true
+    footer: "Armed conflict in Myanmar, 2021-2025 · [← Back to Technical Report](Take-home_Ex02.html)"
+execute:
+  echo: false
+  eval: true
+  message: false
+  warning: false
+  freeze: true
+---
+
+```{r}
+#| include: false
+# Objects saved by the Technical Report (Take-home_Ex02.qmd) are reused here,
+# so that the slides render quickly. Render the Technical Report first.
+pacman::p_load(sf, sfdep, tmap, tidyverse, knitr)
+
+mmr_conflict <- read_rds("data/rds/mmr_conflict.rds")
+acled_df <- read_rds("data/rds/acled_df.rds")
+lisa <- read_rds("data/rds/lisa.rds")
+HCSA <- read_rds("data/rds/HCSA.rds")
+mmr_ehsa <- read_rds("data/rds/mmr_ehsa.rds")
+ehsa_battles <- read_rds("data/rds/ehsa_battles.rds")
+ehsa_explosions <- read_rds("data/rds/ehsa_explosions.rds")
+ehsa_pal <- read_rds("data/rds/ehsa_pal.rds")
+
+mmr_ts <- mmr_conflict %>%
+  select(ST, TS, TS_PCODE)
+
+quarters <- tibble(quarter_id = 1:19) %>%
+  mutate(quarter = paste0(2021 + (quarter_id - 1) %/% 4,
+                          " Q", (quarter_id - 1) %% 4 + 1))
+
+sig_classes <- function(ehsa_map) {
+  ehsa_map %>%
+    filter(classification != "no pattern detected") %>%
+    mutate(classification = factor(
+      classification,
+      levels = intersect(names(ehsa_pal), unique(classification))))
+}
+
+map_ehsa <- function(ehsa_map, title) {
+  ehsa_map_sig <- sig_classes(ehsa_map)
+  tm_shape(ehsa_map) +
+    tm_polygons(fill = "grey95", col = "grey70") +
+  tm_shape(ehsa_map_sig) +
+    tm_polygons(fill = "classification",
+                fill.scale = tm_scale_categorical(
+                  values = unname(ehsa_pal[levels(ehsa_map_sig$classification)])),
+                fill.legend = tm_legend(title = "EHSA class")) +
+    tm_title(title)
+}
+
+n_events <- format(nrow(acled_df), big.mark = ",")
+n_fatal <- format(sum(acled_df$fatalities), big.mark = ",")
+n_active <- sum(mmr_conflict$events > 0)
+n_hh <- sum(lisa$LISA_cluster == "High-High")
+n_hot <- sum(HCSA$HCSA_cluster == "Hot spot")
+n_ehsa_sig <- sum(mmr_ehsa$classification != "no pattern detected")
+```
+
+## Contents
+
+::: {.toc-grid}
+1.  Why this matters
+2.  Data and preparation
+3.  Analytical approach
+4.  When: conflict over time
+5.  Where: conflict by township
+6.  Local clusters and outliers (LISA)
+7.  Hot and cold spots (Gi\*)
+8.  Emerging hot spots (EHSA)
+9.  Air strikes vs ground battles
+10. Limitations and implications
+:::
+
+## 1. Why this matters
+
+::: {.stats}
+::: {.stat}
+[`r n_events`]{.num} [armed conflict events, Jan 2021 to Sep 2025]{.label}
+:::
+
+::: {.stat}
+[`r n_fatal`]{.num} [reported fatalities]{.label}
+:::
+
+::: {.stat}
+[`r n_active` / 330]{.num} [townships with at least one event]{.label}
+:::
+:::
+
+:::: {.columns}
+::: {.column width="48%"}
+::: {.card}
+[The problem]{.eyebrow}
+
+Since the February 2021 coup, armed conflict has spread across Myanmar. Humanitarian and peace actors need to know **where** violence concentrates and **where it is getting worse**, to prioritise protection and aid.
+:::
+:::
+
+::: {.column width="52%"}
+::: {.card}
+[Research questions]{.eyebrow}
+
+1.  **Where** does armed conflict cluster, and which townships are outliers? (LISA, Gi\*)
+2.  **How** are hot spots changing over time: new, intensifying, persistent or diminishing? (EHSA)
+:::
+:::
+::::
+
+## 2. Data and preparation
+
+:::: {.columns}
+::: {.column width="50%"}
+::: {.card}
+[Data]{.eyebrow}
+
+| Dataset | Source |
+|----|----|
+| Conflict events, 2021-2025 | ACLED |
+| Township boundaries v9.4 (330) | MIMU |
+| Population 2023 | HDX (UNFPA, DOP, MIMU) |
+:::
+
+::: {.takeaway}
+**Armed conflict event:** one ACLED event of type Battles, Explosions/Remote violence, or Violence against civilians
+:::
+:::
+
+::: {.column width="50%"}
+::: {.card}
+[Clearing the land mines]{.eyebrow}
+
+-   Protests, riots and strategic developments **excluded**
+-   Events located only to a region (`geo_precision` 3) **removed**
+-   ACLED and MIMU **names differ** → join by coordinates, not names
+-   Points just off the coast/border **snapped** (≤ 2 km); Bay of Bengal centroids removed
+-   Townships with no events **kept as 0**
+-   3 **island townships** have no contiguity neighbours → kNN weights
+:::
+:::
+::::
+
+## 3. Analytical approach
+
+::: {.card}
+| Question | Method | Settings |
+|----|----|----|
+| **Where?** clusters and outliers | Local Moran's I (LISA) | kNN (k = 5), row-standardised, 999 permutations, median quadrants |
+| **Where?** hot and cold spots | Getis-Ord Gi\* | kNN + self, inverse distance, 999 permutations |
+| **How is it changing?** | Emerging Hot Spot Analysis | 19 quarters, time lag 1, Mann-Kendall trend test, 99 permutations |
+| **Value-added** | EHSA by event type | Battles vs Explosions/Remote violence |
+:::
+
+::: {.takeaway}
+All maps show only results significant at **p < 0.05**.
+:::
+
+## 4. When: conflict over time
+
+:::: {.columns}
+::: {.column width="62%"}
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+acled_df %>%
+  count(quarter_id, event_type) %>%
+  left_join(quarters, by = "quarter_id") %>%
+  ggplot(aes(x = quarter_id, y = n, colour = event_type)) +
+  geom_line(linewidth = 1.2) +
+  scale_x_continuous(breaks = quarters$quarter_id[c(TRUE, FALSE)],
+                     labels = quarters$quarter[c(TRUE, FALSE)]) +
+  labs(x = NULL, y = "Events per quarter", colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+```
+:::
+
+::: {.column width="38%"}
+::: {.card}
+[What we see]{.eyebrow}
+
+✏️ *Fill in after rendering: overall trend, peaks, and the changing mix of battles vs explosions/remote violence.*
+:::
+:::
+::::
+
+## 5. Where: conflict by township
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6
+#| fig-height: 6.5
+tm_shape(mmr_conflict) +
+  tm_polygons(fill = "events",
+              fill.scale = tm_scale_intervals(style = "jenks", n = 6,
+                                              values = "brewer.reds"),
+              fill.legend = tm_legend(title = "Events")) +
+  tm_title("Armed conflict events, 2021-2025")
+```
+:::
+
+::: {.column width="45%"}
+::: {.card}
+[Most affected townships]{.eyebrow}
+
+```{r}
+mmr_conflict %>%
+  st_drop_geometry() %>%
+  arrange(desc(events)) %>%
+  slice(1:6) %>%
+  select(Township = TS, State = ST, Events = events) %>%
+  kable()
+```
+:::
+:::
+::::
+
+## 6. Local clusters and outliers (LISA)
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6
+#| fig-height: 6.5
+tm_shape(lisa) +
+  tm_polygons(
+    fill = "LISA_cluster",
+    fill.scale = tm_scale_categorical(
+      values = c("grey90", "#2c7bb6", "#abd9e9", "#fdae61", "#d7191c")),
+    fill.legend = tm_legend(title = "LISA (p < 0.05)"))
+```
+:::
+
+::: {.column width="45%"}
+::: {.card}
+[Findings]{.eyebrow}
+
+**`r n_hh` townships** form High-High clusters.
+
+✏️ *Fill in after rendering: where the High-High and Low-Low clusters are, and one or two notable outliers.*
+:::
+:::
+::::
+
+## 7. Hot and cold spots (Gi\*)
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6
+#| fig-height: 6.5
+tm_shape(HCSA) +
+  tm_polygons(
+    fill = "HCSA_cluster",
+    fill.scale = tm_scale_categorical(
+      values = c("grey90", "#2c7bb6", "#d7191c")),
+    fill.legend = tm_legend(title = "Gi* (p < 0.05)"))
+```
+:::
+
+::: {.column width="45%"}
+::: {.card}
+[Findings]{.eyebrow}
+
+**`r n_hot` townships** are significant hot spots.
+
+✏️ *Fill in after rendering: compare with the LISA clusters.*
+:::
+:::
+::::
+
+## 8. Emerging hot spots (EHSA)
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6
+#| fig-height: 6.5
+map_ehsa(mmr_ehsa, "EHSA, 2021 Q1 to 2025 Q3")
+```
+:::
+
+::: {.column width="45%"}
+::: {.card}
+[Findings]{.eyebrow}
+
+**`r n_ehsa_sig` townships** show a significant space-time pattern.
+
+```{r}
+mmr_ehsa %>%
+  st_drop_geometry() %>%
+  filter(classification != "no pattern detected") %>%
+  count(classification, sort = TRUE) %>%
+  rename(`EHSA class` = classification, Townships = n) %>%
+  kable()
+```
+
+✏️ *Fill in after rendering: what the main classes mean for the conflict.*
+:::
+:::
+::::
+
+## 9. Air strikes vs ground battles
+
+:::: {.columns}
+::: {.column width="50%"}
+```{r}
+#| fig-width: 5.5
+#| fig-height: 6
+map_ehsa(mmr_ts %>% left_join(ehsa_battles,
+                              by = join_by(TS_PCODE == location)),
+         "Battles")
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| fig-width: 5.5
+#| fig-height: 6
+map_ehsa(mmr_ts %>% left_join(ehsa_explosions,
+                              by = join_by(TS_PCODE == location)),
+         "Explosions/Remote violence")
+```
+:::
+::::
+
+::: {.takeaway}
+✏️ *Fill in after rendering: one sentence on how the two forms of violence differ.*
+:::
+
+## 10. Limitations and implications
+
+:::: {.columns}
+::: {.column width="50%"}
+::: {.card}
+[Limitations]{.eyebrow}
+
+-   ACLED relies on media and local partners: **information blackouts** may hide violence, so cold spots may partly be missing reports
+-   Event counts do not measure **intensity**; fatalities are often estimated
+-   Townships differ greatly in size (**MAUP**)
+-   Results depend on the **k = 5 neighbourhood** and quarterly time slices
+:::
+:::
+
+::: {.column width="50%"}
+::: {.card}
+[Implications for peace and humanitarian action]{.eyebrow}
+
+✏️ *Fill in after rendering, e.g.:*
+
+-   *Intensifying/new hot spots → early warning and pre-positioning of aid*
+-   *Persistent hot spots → long-term protection and displacement support*
+-   *Diminishing hot spots → windows for recovery and local peacebuilding*
+:::
+:::
+::::

@@ -17,17 +17,20 @@ This website showcases my hands-on exercises and learning journey through the co
 -   [Hands-on Exercise 7: Global Measures of Spatial Autocorrelation](Hands-on/Hands-on_Ex07/Hands-on_Ex07.html)
 -   [Hands-on Exercise 8: Local Measures of Spatial Autocorrelation](Hands-on/Hands-on_Ex08/Hands-on_Ex08.html)
 -   [Hands-on Exercise 9: Geographical Segmentation with Spatially Constrained Clustering Techniques](Hands-on/Hands-on_Ex09/Hands-on_Ex09.html)
+-   [Hands-on Exercise 10: Modelling Geographical Accessibility](Hands-on/Hands-on_Ex09/Hands-on_Ex09.html)
 
 ## In-class Exercises
 
 -   [In-class Exercise 4](In-class/In-class_Ex04/In-class_Ex04.html)
 
 -   [In-class Exercise 6](In-class/In-class_Ex06/In-class_Ex06.html)
+
 This is a Quarto website.
 
 ## Take-home Exercises
 
 -   [Take-home Exercise 1](Take-home/Take-home_Ex01/Take-home_Ex01.html)
+-   [Take-home Exercise 2](Take-home/Take-home_Ex02/Take-home_Ex02.html)
 
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 
