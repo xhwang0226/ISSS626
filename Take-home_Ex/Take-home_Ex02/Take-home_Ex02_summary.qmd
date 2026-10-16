@@ -256,7 +256,7 @@ tm_shape(lisa) +
 **`r n_hh` townships** form High-High clusters.
 
 -   **Global Moran's I = 0.45** (p < 0.001): conflict is strongly clustered
--   **High-High core** in the central Dry Zone: Sagaing, with Mandalay and Magway; smaller clusters in Tanintharyi, Kachin and Kayah
+-   **High-High core** in the central Dry Zone: Sagaing, with Mandalay and Magway; smaller clusters in Tanintharyi and Kachin
 -   **Low-Low**: Ayeyarwady delta, Yangon, Nay Pyi Taw, eastern Shan
 -   **No High-Low outliers**: heavy conflict always spills over to neighbours
 :::
@@ -286,7 +286,7 @@ tm_shape(HCSA) +
 **`r n_hot` townships** are significant hot spots.
 
 -   Hot spots **confirm the Dry Zone core** found by LISA (Gi\* up to ~5)
--   Gi\* adds a hot spot on the **Kayin–Thailand border**, driven by one very active township
+-   Gi\* adds hot spots on the **Kayin–Thailand border** and just east of the Dry Zone
 -   Cold spots match LISA's Low-Low areas
 :::
 :::
@@ -318,7 +318,10 @@ mmr_ehsa %>%
   kable()
 ```
 
-✏️ *Fill in after rendering: what the main classes mean for the conflict.*
+-   **Sporadic hot spots** dominate: front lines move, and fighting flares up and returns
+-   **Oscillating hot spots** in the Dry Zone and Rakhine: once calm, now hot
+-   **Consecutive/new hot spots** (Bago East–Kayin–Mon, northern Sagaing, Kachin): early warning
+-   **Persistent cold spots** in eastern Shan
 :::
 :::
 ::::
@@ -348,7 +351,7 @@ map_ehsa(mmr_ts %>% left_join(ehsa_explosions,
 ::::
 
 ::: {.takeaway}
-✏️ *Fill in after rendering: one sentence on how the two forms of violence differ.*
+Battles flare up **sporadically** across a wide area, while explosions/remote violence show **intensifying and emerging hot spots**: air and drone strikes are spreading where ground fighting is not.
 :::
 
 ## 10. Limitations and implications
@@ -369,11 +372,10 @@ map_ehsa(mmr_ts %>% left_join(ehsa_explosions,
 ::: {.card}
 [Implications for peace and humanitarian action]{.eyebrow}
 
-✏️ *Fill in after rendering, e.g.:*
-
--   *Intensifying/new hot spots → early warning and pre-positioning of aid*
--   *Persistent hot spots → long-term protection and displacement support*
--   *Diminishing hot spots → windows for recovery and local peacebuilding*
+-   **New and consecutive hot spots** → early warning and pre-positioning of aid
+-   **Dry Zone core** → sustained civilian protection and displacement support
+-   **Track remote violence separately**: it is intensifying where battles are not
+-   **Cold spots** (eastern Shan, delta) → windows for recovery and local peacebuilding
 :::
 :::
 ::::

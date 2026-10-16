@@ -413,11 +413,11 @@ acled_df %>%
 ```
 
 ::: {.callout-note title="Interpretation"}
-Armed conflict rose sharply after the February 2021 coup. All three event types were below 200 in 2021 Q1, but by 2021 Q4 explosions/remote violence had reached about 1,280 events per quarter and battles about 940, as armed resistance spread. Both stayed at roughly 1,000 to 1,250 per quarter through 2022 and the first half of 2023.
+Armed conflict rose sharply after the February 2021 coup. In 2021 Q1, each event type had fewer than 200 events. By 2021 Q4, explosions/remote violence reached about 1,280 and battles about 940 per quarter.
 
-The largest peak came in 2023 Q4, when explosions/remote violence reached about 1,920 events and battles about 1,650, coinciding with the "Operation 1027" offensive launched in late October 2023. After this peak, battles fell back to about 1,070 to 1,150 per quarter, while explosions/remote violence stayed higher, at about 1,370 to 1,430 per quarter until 2025 Q2. Since late 2023, explosions/remote violence have outnumbered battles in every quarter, consistent with growing reliance on air strikes, drone strikes and artillery rather than ground fighting.
+The highest peak was in 2023 Q4 (about 1,920 explosions/remote violence and 1,650 battles), during the "Operation 1027" offensive. After that, battles fell to about 1,100 per quarter, but explosions/remote violence stayed around 1,400. Since late 2023, explosions/remote violence have outnumbered battles in every quarter. This suggests a shift towards air strikes, drones and shelling.
 
-Violence against civilians peaked early, at about 780 events in 2021 Q4, and has since declined slowly to about 400 to 500 per quarter. It remains a steady part of the conflict rather than following the battle cycle.
+Violence against civilians peaked early (about 780 in 2021 Q4) and has slowly declined to 400–500 per quarter.
 :::
 
 ## 6.2 Distribution of events across townships
@@ -433,7 +433,7 @@ ggplot(mmr_conflict, aes(x = events)) +
 ```
 
 ::: {.callout-note title="Interpretation"}
-The distribution is strongly right-skewed. Half of the townships recorded 79 events or fewer over the study period, but the mean is 163 and the most affected township recorded 1,039. Eight townships recorded no armed conflict events at all. Because a few extreme townships pull the mean upwards, the LISA quadrants in Section 7.3 are labelled relative to the median.
+The distribution is strongly right-skewed. The median township has 79 events, but the mean is 163 and the maximum is 1,039. Eight townships have no events. Because a few extreme values pull the mean up, LISA quadrants are labelled using the median (Section 7.3).
 :::
 
 ## 6.3 Choropleth maps
@@ -472,11 +472,16 @@ tmap_arrange(map_events, map_fatal, map_rate, ncol = 3)
 ```
 
 ::: {.callout-note title="Interpretation"}
-Armed conflict is concentrated in two broad belts. The first is the central Dry Zone, covering southern Sagaing, northern Magway and western Mandalay, which contains the darkest cluster of townships on the events map. The second runs along the south-east, from Bago (East) and Kayin through Mon to Tanintharyi. Smaller concentrations appear in northern Shan, central Kachin and northern Rakhine. Most of Shan (East and South), the Ayeyarwady delta and Yangon recorded relatively few events.
+Conflict is concentrated in two belts:
 
-Fatalities largely follow the same pattern, but are even more concentrated in the Dry Zone, along the Kayin border and in northern Rakhine, where fighting has been especially deadly.
+-   the **central Dry Zone** (southern Sagaing, northern Magway, western Mandalay), and
+-   the **south-east**, from Bago (East) and Kayin through Mon to Tanintharyi.
 
-The per-capita map changes the picture. Densely populated Dry Zone townships become less prominent, while sparsely populated townships in north-eastern Kachin, the Kayin and Kayah hills and Tanintharyi stand out. Their populations face a higher exposure to conflict than raw counts suggest. Because the 2023 population estimates do not reflect later displacement, the rates should be read as indicative.
+Smaller concentrations appear in northern Shan, central Kachin and northern Rakhine. Eastern and southern Shan, the Ayeyarwady delta and Yangon have few events.
+
+Fatalities follow the same pattern, but are even more concentrated in the Dry Zone, the Kayin border and northern Rakhine.
+
+The per-capita map tells a different story. Populous Dry Zone townships become less prominent, while sparsely populated townships in north-eastern Kachin, the Kayin and Kayah hills and Tanintharyi stand out. People there face more conflict per person than the raw counts suggest. As the 2023 population figures do not reflect later displacement, these rates are only indicative.
 :::
 
 ## 6.4 Events by event type
@@ -503,13 +508,13 @@ tmap_arrange(
 ```
 
 ::: {.callout-note title="Interpretation"}
-The three event types share the same core in the central Dry Zone, but differ elsewhere.
+All three types are concentrated in the Dry Zone, but they differ elsewhere.
 
-Battles are the most widespread type. Besides the Dry Zone, they are frequent along the whole south-eastern belt (Kayin, Mon and Tanintharyi), in northern Shan, Kachin and on the Rakhine coast, i.e. wherever armed groups confront the military on the ground.
+-   **Battles** are the most widespread. They also occur along the south-east, in northern Shan, Kachin and on the Rakhine coast, wherever armed groups fight the military on the ground.
+-   **Explosions/remote violence** are more concentrated, mainly in Sagaing, Magway, Kayin and Bago (East). This fits air strikes, shelling and drones targeting resistance-held areas.
+-   **Violence against civilians** is the most concentrated, mainly in Sagaing and Mandalay, with smaller pockets in Tanintharyi and Kachin.
 
-Explosions/remote violence are more concentrated. The highest counts are in the Dry Zone (Sagaing and Magway) and in Kayin and Bago (East), with fewer events in the north and north-east. This fits a pattern in which air strikes, shelling and drones target areas where resistance groups hold territory.
-
-Violence against civilians is the most concentrated of the three. It is heavily focused on Sagaing and Mandalay, with further pockets in Tanintharyi and central Kachin. Its overlap with the Dry Zone battle zone suggests that civilians are most at risk in contested areas where the military conducts operations against resistance-held villages.
+The overlap between civilian violence and battles in the Dry Zone suggests that civilians are most at risk in contested areas.
 :::
 
 ## 6.5 Events by year
@@ -539,11 +544,15 @@ tm_shape(mmr_year) +
 ```
 
 ::: {.callout-note title="Interpretation"}
-Fixed class breaks are used for all years, so darker colours mean more events in absolute terms. Note that 2025 covers only nine months.
+The same class breaks are used for every year, so the colours are comparable. 2025 covers only nine months.
 
-In 2021, conflict was widespread but mostly at low to moderate levels, with stronger pockets in northern Shan, Kachin and Kayin. In 2022, it intensified sharply in the Dry Zone (Sagaing, Magway and Mandalay) and along the south-east (Kayin and Tanintharyi), which became the two main conflict belts. In 2023, these belts remained intense and northern Shan became one of the darkest areas, reflecting the late-2023 offensive there. In 2024, conflict spread along the Rakhine coast and intensified further in southern Tanintharyi, while the Dry Zone remained active. In 2025, the Dry Zone and the south-east remained the main areas of fighting, while northern Shan and Rakhine became less intense.
+-   **2021:** conflict was widespread but mostly low to moderate, with stronger pockets in northern Shan, Kachin and Kayin.
+-   **2022:** conflict intensified sharply in the Dry Zone and the south-east, which became the two main conflict belts.
+-   **2023:** both belts stayed intense, and northern Shan became one of the most affected areas after the late-2023 offensive.
+-   **2024:** conflict spread along the Rakhine coast and intensified in southern Tanintharyi.
+-   **2025:** the Dry Zone and the south-east remained the main areas; northern Shan and Rakhine became quieter.
 
-Overall, conflict did not simply move from one region to another. The Dry Zone stayed active throughout, while new fronts opened and closed around it in Shan, Rakhine and Tanintharyi.
+Conflict did not simply move from one region to another. The Dry Zone stayed active throughout, while other fronts opened and closed around it.
 :::
 
 # 7. Local Measures of Spatial Autocorrelation
@@ -588,7 +597,7 @@ global_moran_perm(wm_knn$events,
 ```
 
 ::: {.callout-note title="Interpretation"}
-Moran's I is 0.45, and the observed value ranks highest among the 1,000 values (999 permutations plus the observed one), giving a p-value below 0.001. We therefore reject the null hypothesis of spatial randomness. Armed conflict is positively spatially autocorrelated: townships with many events tend to be next to townships with many events, and calm townships next to calm ones. This justifies looking for where these clusters are, using local measures.
+Moran's I is 0.45 with p < 0.001 (the observed value is the highest of 1,000). We reject the null hypothesis of spatial randomness. Conflict is positively autocorrelated: townships with many events tend to be next to other high-conflict townships, and calm townships next to calm ones. This justifies looking for local clusters.
 :::
 
 ## 7.3 Local Moran's I
@@ -661,13 +670,12 @@ lisa %>%
 ```
 
 ::: {.callout-note title="Interpretation"}
-Of the 330 townships, `r sum(lisa$LISA_cluster != "Insignificant")` show a significant local pattern (p < 0.05).
+`r sum(lisa$LISA_cluster != "Insignificant")` of the 330 townships show a significant local pattern (p < 0.05).
 
-**High-High clusters** (`r sum(lisa$LISA_cluster == "High-High")` townships) form one large, contiguous core in the central Dry Zone, mostly in Sagaing, with neighbouring townships in Mandalay and Magway. Smaller High-High clusters appear in Tanintharyi, central Kachin and Kayah. These are areas where heavy conflict is not isolated but shared by whole groups of neighbouring townships.
-
-**Low-Low clusters** (`r sum(lisa$LISA_cluster == "Low-Low")` townships) cover the Ayeyarwady delta, Yangon, Nay Pyi Taw, eastern and southern Shan, and the far north of Kachin. Yangon and Nay Pyi Taw are under firm military control, while much of eastern Shan is held by armed groups with long-standing ceasefires.
-
-**Outliers** are rare. The `r sum(lisa$LISA_cluster == "Low-High")` Low-High townships are relatively calm townships surrounded by active conflict, in Kachin, Mandalay and Kayin; they may be towns under firm control within contested areas. No High-Low outlier was found: heavy conflict in this period never occurred in isolation, but always spilled over to neighbouring townships.
+-   **High-High** (`r sum(lisa$LISA_cluster == "High-High")` townships): one large core in the central Dry Zone, mostly in Sagaing, plus parts of Mandalay and Magway. Smaller clusters appear in Tanintharyi and central Kachin. Here, whole groups of neighbouring townships share heavy conflict.
+-   **Low-Low** (`r sum(lisa$LISA_cluster == "Low-Low")` townships): the Ayeyarwady delta, Yangon, Nay Pyi Taw, eastern and southern Shan, and far-north Kachin. Yangon and Nay Pyi Taw are under firm military control, and much of eastern Shan is held by armed groups with long-standing ceasefires.
+-   **Low-High** (`r sum(lisa$LISA_cluster == "Low-High")` townships, in Kachin and Mandalay): calm townships surrounded by conflict, possibly towns under firm control inside contested areas.
+-   **High-Low:** none. Heavy conflict never occurred in isolation; it always spread to neighbouring townships.
 :::
 
 ## 7.4 Hot and cold spot analysis (Gi\*)
@@ -727,13 +735,13 @@ tmap_arrange(map_gi, map_gi_value, ncol = 2)
 ```
 
 ::: {.callout-note title="Interpretation"}
-Gi\* identifies `r sum(HCSA$HCSA_cluster == "Hot spot")` hot spots and `r sum(HCSA$HCSA_cluster == "Cold spot")` cold spots (p < 0.05).
+Gi\* finds `r sum(HCSA$HCSA_cluster == "Hot spot")` hot spots and `r sum(HCSA$HCSA_cluster == "Cold spot")` cold spots (p < 0.05).
 
-The results largely agree with the LISA clusters. The strongest hot spots, with Gi\* values up to about 5, form the same contiguous core in the Dry Zone of Sagaing, Magway and Mandalay. Smaller hot spots in central Kachin, Tanintharyi and near the Kayah/Bago (East) border also match High-High clusters. The cold spots match the Low-Low clusters in the Ayeyarwady delta, eastern Shan, the far north of Kachin and around Nay Pyi Taw.
+The results mostly agree with LISA. The strongest hot spots (Gi\* up to about 5) form the same Dry Zone core, and smaller hot spots in Kachin and Tanintharyi match High-High clusters. Cold spots match the Low-Low areas: the delta, eastern Shan, far-north Kachin and around Nay Pyi Taw.
 
-The main difference is along the Kayin border with Thailand, where Gi\* finds a hot spot that LISA does not classify as High-High. Gi\* includes the township itself and weights closer neighbours more heavily, so a very active township (such as one on the Myawaddy front) can form a hot spot even if not all of its neighbours are highly active. LISA, by contrast, requires both the township and the average of its neighbours to be high.
+Gi\* also finds hot spots on the Kayin–Thailand border and just east of the Dry Zone core, which LISA does not. This is because Gi\* includes the township itself and weights closer neighbours more, so one very active township can create a hot spot. LISA needs both the township and its neighbours to be high.
 
-Together, the two methods show that the Dry Zone is the clearest and most robust conflict cluster in Myanmar.
+Both methods confirm that the Dry Zone is the strongest conflict cluster in Myanmar.
 :::
 
 ```{r}
@@ -1010,7 +1018,24 @@ write_rds(ehsa_pal, "data/rds/ehsa_pal.rds")
 The cold spot classes are defined in the same way for significantly low values.
 
 ::: {.callout-note title="Interpretation"}
-✏️ *To write after rendering (≤ 250 words per class that appears): for each class, say how many townships, where they are (state/region), and what it means for the conflict, e.g. sporadic hot spots in Sagaing show conflict spreading in waves; persistent hot spots show stable front lines.*
+```{r}
+#| echo: false
+n_cls <- function(cl) sum(mmr_ehsa$classification == cl, na.rm = TRUE)
+```
+
+**Sporadic hot spots** (`r n_cls("sporadic hotspot")` townships) are the most common hot spot class. They form an arc across northern Shan, Kachin, Chin and northern Sagaing, and a belt in the south-east (Kayin, Mon, Tanintharyi). They are hot in some quarters but not others, and never cold. This fits moving front lines: fighting flares up, moves on and comes back.
+
+**Oscillating hot spots** (`r n_cls("oscilating hotspot")`) are hot in the last quarter but were cold earlier, mainly in Magway, Sagaing and Rakhine. In the Dry Zone, the early cold spots reflect the calm before resistance spread in 2021. In Rakhine, they reflect the informal ceasefire that held until late 2023.
+
+**Consecutive hot spots** (`r n_cls("consecutive hotspot")`) and **new hot spots** (`r n_cls("new hotspot")`) only became hot at the end of the period. Consecutive hot spots are mainly along the Bago (East)–Kayin–Mon corridor and near Mandalay; new hot spots are in northern Sagaing and Kachin. These are the clearest early-warning areas.
+
+**Persistent cold spots** (`r n_cls("persistent coldspot")`) are mainly in eastern Shan, plus Nay Pyi Taw and parts of Yangon, which are held by ceasefire groups or under firm military control.
+
+**Sporadic cold spots** (`r n_cls("sporadic coldspot")`), the largest class, cover the delta, Yangon and southern Shan, which were quieter than average in some quarters.
+
+**Oscillating** (`r n_cls("oscilating coldspot")`) and **consecutive cold spots** (`r n_cls("consecutive coldspot")`) are cold at the end after being hot or neutral earlier, mainly in Mandalay, Yangon and northern Shan. This matches the decline of urban resistance after 2022 and the 2024 ceasefires in northern Shan.
+
+**No pattern detected** (`r n_cls("no pattern detected")`) does not mean no conflict. Several Dry Zone townships were hot in most quarters but do not meet any class rule. For these, the LISA and Gi\* results in Section 7 give a better picture.
 :::
 
 # 9. Value-added Analysis: Do Air Strikes and Ground Battles Evolve Differently?
@@ -1088,12 +1113,34 @@ bind_rows(
 ```
 
 ::: {.callout-note title="Interpretation"}
-✏️ *To write after rendering (≤ 200 words): do explosions/remote violence show more new, consecutive or intensifying hot spots than battles? In which regions? What does this suggest about the shift towards air and drone strikes?*
+```{r}
+#| echo: false
+n_b <- function(cl) sum(ehsa_battles$classification == cl, na.rm = TRUE)
+n_e <- function(cl) sum(ehsa_explosions$classification == cl, na.rm = TRUE)
+```
+
+The two forms of violence behave differently.
+
+**Battles** are mostly **sporadic hot spots** (`r n_b("sporadic hotspot")` townships, against `r n_e("sporadic hotspot")` for explosions/remote violence), spread across Sagaing, Kachin, Chin, Magway and the south-east. Ground fighting flares up and dies down without clear trends.
+
+**Explosions/remote violence** show more signs of escalation:
+
+-   `r n_e("intensifying hotspot")` **intensifying hot spots**, against none for battles, in Kachin and the Shan border areas;
+-   more **oscillating hot spots** (`r n_e("oscilating hotspot")` against `r n_b("oscilating hotspot")`);
+-   slightly more **consecutive** and **new hot spots**, along the Bago (East)–Kayin corridor, near Mandalay and in Kachin.
+
+Battles also have many more **persistent cold spots** (`r n_b("persistent coldspot")` against `r n_e("persistent coldspot")`): ground fighting stays away from large areas, while remote violence reaches further.
+
+Together with Section 6.1, this suggests that air strikes, drones and shelling are not only more frequent since late 2023, but are also spreading and intensifying where ground battles are not. Remote violence should therefore be monitored separately.
 :::
 
 # 10. Conclusions
 
-✏️ *To write after rendering: answer the two research questions in a few sentences each.*
+**Where does armed conflict cluster?** Conflict in Myanmar is strongly clustered (Moran's I = 0.45). The strongest cluster is the central Dry Zone of Sagaing, Magway and Mandalay, found by both LISA and Gi\*. Smaller clusters are in Kachin, Tanintharyi and on the Kayin border. Calm areas are also clustered: the delta, Yangon, Nay Pyi Taw and eastern Shan. There are no High-Low outliers, so heavy conflict always spread to neighbouring townships.
+
+**How are the clusters changing?** Few townships are persistent or intensifying hot spots. Most hot spots are sporadic or oscillating, showing moving front lines and conflict returning to once-calm areas such as Rakhine. New and consecutive hot spots (Bago (East)–Kayin–Mon, northern Sagaing and Kachin) show where conflict is emerging. Eastern Shan stays a persistent cold spot. Explosions/remote violence, unlike battles, have intensifying hot spots, pointing to the growing role of air and drone strikes.
+
+**Implications.** Humanitarian and peace actors should focus early warning on the new and consecutive hot spots, sustain civilian protection in the Dry Zone, and monitor remote violence separately from battles.
 
 ## 10.1 Limitations
 
