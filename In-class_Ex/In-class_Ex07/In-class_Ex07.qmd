@@ -14,10 +14,12 @@ Installing catchment R package from github
 Use the code chunk below to install catchment R package from github.
 
 ```{r}
+#| eval: false
 install.packages("remotes")
 ```
 
 ```{r}
+#| eval: false
 remotes::install_github('uva-bi-sdad/catchment')
 ```
 
