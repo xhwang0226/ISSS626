@@ -294,6 +294,7 @@ huff_share_pp <- huff_share %>%
 
 Next, shares.total() of MCI package will be used to calculate the total sales by using the code chunk below.
 
+
 ```{r}
 huff_total <- shares.total(
   huff_share_pp, "VILLCODE", "Store_CD",
