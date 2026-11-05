@@ -1,0 +1,384 @@
+---
+title: "Who Will Ride the Jurong Region Line and Cross Island Line?"
+subtitle: "ISSS626 · Take-home Exercise 3 · Executive Summary"
+author: "Wang Xiaohan"
+date: "2026-10-31"
+format:
+  revealjs:
+    theme: [default, summary.scss]
+    width: 1280
+    height: 720
+    slide-number: true
+    transition: fade
+    scrollable: true
+    footer: "Huff and MCI models for MRT/LRT ridership · [← Back to Technical Report](Take-home_Ex03.html)"
+execute:
+  echo: false
+  eval: true
+  message: false
+  warning: false
+  freeze: true
+---
+
+```{r}
+#| include: false
+# Objects saved by the Technical Report (Take-home_Ex03.qmd) are reused here,
+# so that the slides render quickly. Render the Technical Report first.
+pacman::p_load(sf, tidyverse, tmap, ggstatsplot, knitr)
+
+all_nodes <- read_rds("data/rds/all_nodes.rds")
+stations <- read_rds("data/rds/stations.rds")
+mpsz <- read_rds("data/rds/mpsz.rds")
+subzone_TA <- read_rds("data/rds/subzone_TA.rds")
+stn_est <- read_rds("data/rds/stn_est.rds")
+forecast <- read_rds("data/rds/forecast.rds")
+model_table <- read_rds("data/rds/model_table.rds")
+pred_table <- read_rds("data/rds/pred_table.rds")
+dest_mix <- read_rds("data/rds/dest_mix.rds")
+key <- read_rds("data/rds/key_numbers.rds")
+
+fmt <- function(x) format(round(x), big.mark = ",")
+new_fc <- forecast %>% filter(status == "Proposed")
+n_jrl <- fmt(sum(new_fc$future[new_fc$new_line == "Jurong Region Line"]))
+n_crl <- fmt(sum(new_fc$future[new_fc$new_line == "Cross Island Line"]))
+n_lose20 <- sum(forecast$status == "Existing" & forecast$pct_change < -20)
+lambda_hat <- round(key$lambda_hat, 2)
+switched <- subzone_TA %>% st_drop_geometry() %>% filter(switched)
+share_switched <- round(sum(switched$P_CNT) / sum(subzone_TA$P_CNT) * 100)
+```
+
+## Contents
+
+::: {.toc-grid}
+1.  Why this matters
+2.  Data and preparation
+3.  Analytical approach
+4.  Calibrating the Huff model
+5.  What makes a station attractive
+6.  Ridership of the new stations
+7.  Impact on existing stations
+8.  Market areas before and after
+9.  Where riders go (MCI)
+10. Limitations and implications
+:::
+
+## 1. Why this matters
+
+::: {.stats}
+::: {.stat}
+[36]{.num} [new stations: JRL (24) and CRL Phase 1 (12)]{.label}
+:::
+
+::: {.stat}
+[`r fmt(key$total_obs)`]{.num} [weekday morning (06:00–09:59) tap-ins per day, Sep 2026]{.label}
+:::
+
+::: {.stat}
+[`r fmt(key$residents)`]{.num} [residents in `r key$n_origins` subzones]{.label}
+:::
+:::
+
+:::: {.columns}
+::: {.column width="48%"}
+::: {.card}
+[The problem]{.eyebrow}
+
+Stations built ahead of demand can sit empty for years: Buangkok, Woodleigh and Hume stayed closed because projected ridership was too low. Planners need to know **how many riders** a new station will attract, and **from which existing stations** they will come.
+:::
+:::
+
+::: {.column width="52%"}
+::: {.card}
+[Research question]{.eyebrow}
+
+How many residents will start their morning trips at the proposed **JRL and CRL** stations, and how will these stations change the **ridership and market areas** of existing stations?
+:::
+:::
+::::
+
+## 2. Data and preparation
+
+:::: {.columns}
+::: {.column width="50%"}
+::: {.card}
+[Data]{.eyebrow}
+
+| Dataset | Source |
+|----|----|
+| OD tap-ins by station, Sep 2026 | LTA DataMall API |
+| Station polygons, codes, bus stops | LTA DataMall |
+| Future station coordinates | URA Master Plan (GitHub) |
+| Subzone boundaries (MP2019) | data.gov.sg (URA) |
+| Population by subzone, 2025 | SingStat |
+:::
+:::
+
+::: {.column width="50%"}
+::: {.card}
+[Clearing the land mines]{.eyebrow}
+
+-   Station layer: **no EPSG**, depots, unopened stations
+-   **TEL/NEL polygons reuse old codes** → lines from code table
+-   Code table predates **CCL6** → CC30–CC34 added
+-   **184 station complexes**; 6 invalid subzones repaired
+-   Cross-border bus stops removed; **200 m** distance floor
+:::
+:::
+::::
+
+## 3. Analytical approach
+
+::: {.card}
+| Step | Method (course reference) |
+|----|----|
+| Interaction data frames | 234 subzones × 184 stations (today), × 213 (future); **st_distance()** + **pivot_longer()** (Hands-on 8) |
+| Huff model | $p_{ij} = A_j d_{ij}^{\lambda} / \sum_k A_k d_{ik}^{\lambda}$; market = residents × morning trip rate (`r round(key$trip_rate, 3)`) |
+| Calibration | **huff.shares()** → **huff.lambda()** → **huff.fit()**; fit with **model.fit()** (Lesson 8) |
+| Station attraction | Regression of log $A_j^*$ on lines, bus stops, LRT, distance to CBD; diagnostics, Moran's I, GWR (Hands-on 9) |
+| Prediction | 75/25 train-test split; MLR vs **gwr.predict()** by RMSE (Hands-on 10) |
+| Value-added | **MCI** destination choice with **mci.fit()** (Lesson 8) |
+:::
+
+## 4. Calibrating the Huff model
+
+:::: {.columns}
+::: {.column width="55%"}
+```{r}
+#| fig-width: 6.5
+#| fig-height: 5.2
+ggscatterstats(stn_est, x = est_fit, y = ridership,
+               xlab = "Estimated AM tap-ins per day (M2)",
+               ylab = "Observed AM tap-ins per day",
+               marginal = FALSE, results.subtitle = FALSE) +
+  theme_minimal(base_size = 13)
+```
+:::
+
+::: {.column width="45%"}
+::: {.card}
+[Model comparison]{.eyebrow}
+
+```{r}
+model_table %>%
+  transmute(Model = str_extract(model, "^M[0-9]"),
+            `λ` = round(lambda, 2),
+            `Pseudo-R²` = round(pseudo_R2, 2),
+            `MAPE %` = round(MAPE)) %>%
+  kable()
+```
+
+-   **M0** Hands-on 8 settings · **M1** huff.lambda() · **M2** huff.fit()
+-   λ = `r lambda_hat`: a station twice as far is only **one-fifth** as attractive
+-   Distance alone is not enough: station attraction lifts pseudo-R² from **0.43 to 0.96**
+:::
+:::
+::::
+
+## 5. What makes a station attractive
+
+:::: {.columns}
+::: {.column width="50%"}
+::: {.card}
+[Regression of log fitted attraction (R² = `r round(key$mlr_r2, 2)`)]{.eyebrow}
+
+-   **Each extra line ×2.1** (p \< 0.001)
+-   **Each extra bus stop** within 400 m **+4.5%** (p = 0.01)
+-   **LRT-only station ×0.13** (p \< 0.001): residents go to the MRT hub
+-   **Each km from the CBD +4.6%** (p \< 0.001)
+-   VIF \< 1.3; residual Moran's I = 0.09 (p = 0.056)
+:::
+:::
+
+::: {.column width="50%"}
+::: {.card}
+[Predicting unseen stations (test set)]{.eyebrow}
+
+```{r}
+pred_table %>%
+  rename(Model = model, `RMSE (log attraction)` = RMSE_log_attraction) %>%
+  kable(digits = 3)
+```
+
+-   GWR is slightly better and is used for the 29 new stations
+-   Bandwidth 116 of 184 stations: effects are **broadly the same island-wide**
+-   Typical error ≈ a factor of 2 → read station forecasts as **approximate (±2×)**
+:::
+:::
+::::
+
+## 6. Ridership of the new stations
+
+:::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| fig-width: 7
+#| fig-height: 6.2
+new_fc %>%
+  arrange(future) %>%
+  ggplot(aes(x = future, y = fct_inorder(stn_name), fill = new_line)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c("Jurong Region Line" = "#0099aa",
+                               "Cross Island Line" = "#97c616")) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(x = "Predicted weekday AM tap-ins per day", y = NULL, fill = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+:::
+
+::: {.column width="42%"}
+::: {.stats}
+::: {.stat}
+[`r n_jrl`]{.num} [JRL (21 new stations)]{.label}
+:::
+
+::: {.stat}
+[`r n_crl`]{.num} [CRL (8 new stations)]{.label}
+:::
+:::
+
+::: {.card}
+-   **Strongest:** Pasir Ris East (~13,400), Tampines North (~9,100), Choa Chu Kang West (~7,700), Gek Poh (~6,800)
+-   **Ghost-station risk:** 6 stations **at or below 1,000** (Aviation Park, Peng Kang Hill, Jurong Pier, Nanyang Crescent, Jurong Hill, Nanyang Gateway) rely on workers and students
+:::
+:::
+::::
+
+## 7. Impact on existing stations
+
+:::: {.columns}
+::: {.column width="58%"}
+```{r}
+#| fig-width: 7
+#| fig-height: 5.2
+impact_sf <- stations %>%
+  select(stn_name) %>%
+  left_join(forecast, by = "stn_name") %>%
+  mutate(impact_class = cut(pct_change,
+                            breaks = c(-Inf, -40, -20, -5, 5, Inf),
+                            labels = c("loss > 40%", "loss 20-40%",
+                                       "loss 5-20%", "within 5%", "gain > 5%")))
+tm_shape(mpsz) +
+  tm_polygons(fill = "grey97", col = "grey80", lwd = 0.3) +
+tm_shape(all_nodes %>% filter(status == "Proposed")) +
+  tm_dots(size = 0.25, shape = 24, fill = "white", col = "black") +
+tm_shape(impact_sf) +
+  tm_dots(size = 0.6,
+          fill = "impact_class",
+          fill.scale = tm_scale_categorical(
+            values = c("#b2182b", "#ef8a62", "#fddbc7", "grey60", "#2166ac")),
+          fill.legend = tm_legend(title = "Change in AM tap-ins")) +
+  tm_layout(frame = FALSE)
+```
+:::
+
+::: {.column width="42%"}
+::: {.card}
+[Findings]{.eyebrow}
+
+-   Median **−10%**; West median **−25%**; **`r n_lose20`** stations lose \>20%
+-   **West EWL:** Pioneer −73%, Chinese Garden −63%, Lakeside −57%
+-   **Gains:** Bright Hill +66%, Hougang +39%, Ang Mo Kio +32%
+-   Lost tap-ins become **transfers**
+:::
+:::
+::::
+
+## 8. Market areas before and after
+
+```{r}
+#| fig-width: 13
+#| fig-height: 5.6
+west_box <- st_bbox(c(xmin = 8500, ymin = 32500, xmax = 23000, ymax = 42500),
+                    crs = st_crs(3414))
+west_TA <- subzone_TA %>% st_crop(west_box)
+ta_levels <- sort(unique(c(west_TA$TA, west_TA$TA_future)))
+ta_pal <- c(RColorBrewer::brewer.pal(12, "Paired"),
+            RColorBrewer::brewer.pal(8, "Dark2"),
+            RColorBrewer::brewer.pal(9, "Set1"),
+            RColorBrewer::brewer.pal(12, "Set3")) %>%
+  setdiff(c("#666666", "#999999", "#D9D9D9"))
+ta_pal <- ta_pal[seq_along(ta_levels)]
+west_TA <- west_TA %>%
+  mutate(TA = factor(TA, levels = ta_levels),
+         TA_future = factor(TA_future, levels = ta_levels))
+map_TA <- function(var, title, nodes) {
+  tm_shape(west_TA, bbox = west_box) +
+    tm_polygons(fill = var,
+                fill.scale = tm_scale_categorical(values = ta_pal,
+                                                  levels.drop = FALSE),
+                fill.legend = tm_legend_hide(),
+                col = "white") +
+  tm_shape(nodes %>% st_crop(west_box)) +
+    tm_dots(size = 0.3, fill = "black") +
+    tm_text("stn_name", size = 0.55, ymod = 0.7) +
+  tm_title(title) +
+  tm_layout(frame = TRUE)
+}
+tmap_arrange(
+  map_TA("TA", "Market areas today", all_nodes %>% filter(status == "Existing")),
+  map_TA("TA_future", "Market areas with JRL", all_nodes),
+  ncol = 2)
+```
+
+::: {.takeaway}
+About **`r share_switched`% of residents (`r fmt(sum(switched$P_CNT))`)** get a new most likely station. In the west, Yunnan moves from Pioneer to **Gek Poh**, Boon Lay Place from Boon Lay to **Jurong West**, and Brickworks from Bukit Gombak to **Tengah Park**.
+:::
+
+## 9. Value-added: where will the riders go? (MCI)
+
+:::: {.columns}
+::: {.column width="60%"}
+```{r}
+#| fig-width: 7.5
+#| fig-height: 5
+ggplot(dest_mix, aes(x = share, y = fct_rev(group), fill = dest_area)) +
+  geom_col(width = 0.65) +
+  geom_text(aes(label = if_else(share >= 0.08, scales::percent(share, 1), "")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("CBD" = "#d73027", "Other Central" = "#fc8d59",
+                               "Jurong districts" = "#4575b4", "Other West" = "#91bfdb",
+                               "North / North-East / East" = "#d9d9d9")) +
+  labs(x = "Share of weekday morning trips", y = NULL, fill = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+:::
+
+::: {.column width="40%"}
+::: {.card}
+[MCI destination choice]{.eyebrow}
+
+-   **mci.fit()** on 7,544 station × planning-area shares: mass **`r round(key$mci_coef[1], 2)`**, distance **`r round(key$mci_coef[2], 2)`**, R² `r round(key$mci_r2, 2)`
+-   **JRL:** ~52% to central areas, ~31% stay west
+-   **CRL:** ~60% to central areas
+-   **Both lines are feeders** → transfer capacity at interchanges
+:::
+:::
+::::
+
+## 10. Limitations and implications
+
+:::: {.columns}
+::: {.column width="50%"}
+::: {.card}
+[Limitations]{.eyebrow}
+
+-   Only **residents** modelled: industrial, campus, airport and CBD stations are under-predicted
+-   **Fixed market**: no induced demand, so losses are overstated and gains understated
+-   One point per **subzone**; **straight-line** distance; 2025 population
+-   New-station attraction uncertain (test RMSE 0.76 on log scale); interchange line effect assumed
+:::
+:::
+
+::: {.column width="50%"}
+::: {.card}
+[Implications for planning and public safety]{.eyebrow}
+
+-   **Public safety:** all 7 new interchanges get **many more transfers** (Hougang, Ang Mo Kio and Bright Hill also more tap-ins) → check platform and escalator crowding
+-   **Re-plan feeder buses** into Pioneer, Lakeside, Bukit Gombak and Tampines
+-   **Phase weak stations** (Aviation Park, Peng Kang Hill, Jurong Pier) with job growth, to avoid "ghost stations"
+:::
+:::
+::::

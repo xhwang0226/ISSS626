@@ -37,6 +37,7 @@ This is a Quarto website.
 
 -   [Take-home Exercise 1](Take-home/Take-home_Ex01/Take-home_Ex01.html)
 -   [Take-home Exercise 2](Take-home/Take-home_Ex02/Take-home_Ex02.html)
+-   [Take-home Exercise 3](Take-home/Take-home_Ex03/Take-home_Ex03.html)
 
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 
