@@ -25,6 +25,11 @@ In this in-class exercise, you will learn how to build predictive model by using
 
 # 2 The Data
 
+::: callout-important
+## Note on the data used in this exercise
+The prepared data file (`mdata.rds`) was not provided. This exercise therefore uses a **simulated** data set with the same structure: 1,500 point locations in populated HDB subzones and the same 17 variables. Distance to the CBD, to the nearest MRT/LRT station and bus stops within 350 m are computed from real LTA locations; the other facilities and the resale prices are simulated. The code and workflow follow the hands-on exercise, but the numbers are illustrative and do not describe the real HDB resale market.
+:::
+
 - Aspatial dataset:
   - HDB Resale data: a list of HDB resale transacted prices in Singapore from Jan 2017 onwards. It is in csv format which can be downloaded from data.gov.sg.
 - Geospatial dataset:
@@ -413,7 +418,7 @@ test_data_nogeom <- cbind(
 Next, `predict.grf()` of **spatialML** package will be used to predict the resale value by using the test data and gwRF_adaptive model calibrated earlier.
 
 ```{r}
-gwRF_pred <- predict.grf(gwRF_adaptive,
+gwRF_pred <- predict(gwRF_adaptive,
                          test_data_nogeom,
                          x.var.name="X",
                          y.var.name="Y",
